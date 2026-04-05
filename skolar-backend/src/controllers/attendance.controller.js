@@ -61,8 +61,6 @@ export async function getClassAttendance(req, res) {
 export async function getAttendanceReport(req, res) {
   try {
     const { institutionId } = req.params
-
-    // Single groupBy instead of 3 separate count() calls
     const statusCounts = await prisma.attendance.groupBy({
       by: ['status'],
       where: { student: { institutionId } },
@@ -71,19 +69,60 @@ export async function getAttendanceReport(req, res) {
 
     const countMap = {}
     statusCounts.forEach(s => { countMap[s.status] = s._count })
-
     const total = Object.values(countMap).reduce((a, b) => a + b, 0)
     const present = countMap.present || 0
     const absent = countMap.absent || 0
 
     res.json({
       success: true,
-      data: {
-        total, present, absent,
-        percentage: total > 0 ? ((present / total) * 100).toFixed(1) : 0
-      }
+      data: { total, present, absent, percentage: total > 0 ? ((present / total) * 100).toFixed(1) : 0 },
     })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to generate report' })
+  }
+}
+
+// GET /attendance/my-assignments — Teacher's own subject assignments
+export async function getMyAssignments(req, res) {
+  try {
+    const teacherId = req.user.id
+
+    const assignments = await prisma.teacherAssignment.findMany({
+      where: { teacherId, isActive: true },
+      include: {
+        subject: {
+          select: {
+            id: true, name: true,
+            department: { select: { id: true, name: true } },
+          },
+        },
+      },
+    })
+
+    // Also get students in the department(s) for marking attendance
+    const deptIds = [...new Set(assignments.map(a => a.subject.department?.id).filter(Boolean))]
+
+    const students = deptIds.length > 0 ? await prisma.user.findMany({
+      where: { departmentId: { in: deptIds }, role: 'student' },
+      select: { id: true, name: true, email: true, departmentId: true },
+      orderBy: { name: 'asc' },
+    }) : []
+
+    res.json({
+      success: true,
+      data: {
+        assignments: assignments.map(a => ({
+          id: a.id,
+          subjectId: a.subject.id,
+          subjectName: a.subject.name,
+          departmentId: a.subject.department?.id,
+          departmentName: a.subject.department?.name,
+        })),
+        students,
+      },
+    })
+  } catch (error) {
+    console.error('My assignments error:', error)
+    res.status(500).json({ success: false, error: 'Failed to fetch assignments' })
   }
 }

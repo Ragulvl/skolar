@@ -30,9 +30,22 @@ export function AuthProvider({ children }) {
     fetchUser()
   }, [fetchUser])
 
+  // Google OAuth login — redirect to backend
   const login = () => {
-    // Redirect to backend Google OAuth endpoint
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
+  }
+
+  // Email/password login — API call
+  const loginWithEmail = async (email, password) => {
+    const res = await api.post('/auth/login', { email, password })
+    await fetchUser()
+    return res.data.data
+  }
+
+  // Email/password register — returns temp token for signup flow
+  const registerWithEmail = async (name, email, password) => {
+    const res = await api.post('/auth/register', { name, email, password })
+    return res.data.data // { token }
   }
 
   const logout = async () => {
@@ -52,6 +65,8 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     login,
+    loginWithEmail,
+    registerWithEmail,
     logout,
     refreshUser,
   }

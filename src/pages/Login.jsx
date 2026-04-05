@@ -1,16 +1,47 @@
-import { Navigate, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { School, ArrowLeft, Sparkles } from 'lucide-react'
+import { School, ArrowLeft, Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function Login() {
-  const { user, loading, isAuthenticated, login } = useAuth()
+  const { user, loading, isAuthenticated, login, loginWithEmail } = useAuth()
+  const navigate = useNavigate()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   if (!loading && isAuthenticated && user) {
     return <Navigate to={user.dashboardPath || '/dashboard/superadmin'} replace />
   }
 
   const urlParams = new URLSearchParams(window.location.search)
-  const error = urlParams.get('error')
+  const urlError = urlParams.get('error')
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault()
+    if (!email.trim() || !password) return
+
+    setSubmitting(true)
+    setError('')
+
+    try {
+      const data = await loginWithEmail(email, password)
+      navigate(data.dashboardPath || '/', { replace: true })
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Failed to sign in'
+      const code = err.response?.data?.code
+      if (code === 'GOOGLE_ONLY') {
+        setError('This account uses Google sign-in. Click "Sign in with Google" below, or add a password in Settings after signing in.')
+      } else {
+        setError(msg)
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-dark-900 flex items-center justify-center relative overflow-hidden">
@@ -43,22 +74,87 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Error */}
-            {error && (
+            {/* Errors */}
+            {(error || urlError) && (
               <div className="mb-6 p-3 rounded-xl bg-danger/10 border border-danger/20 text-sm text-danger text-center animate-scale-in">
-                {error === 'auth_failed'
+                {error || (urlError === 'auth_failed'
                   ? 'Authentication failed. Please try again.'
-                  : error === 'account_exists'
+                  : urlError === 'account_exists'
                   ? 'An account with this email already exists. Sign in instead.'
-                  : 'An error occurred. Please try again.'}
+                  : 'An error occurred. Please try again.')}
               </div>
             )}
+
+            {/* Email/Password Form */}
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <label className="text-sm text-dark-300 mb-1.5 block font-medium">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError('') }}
+                    placeholder="you@example.com"
+                    className="input-base pl-10"
+                    id="login-email"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-dark-300 mb-1.5 block font-medium">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError('') }}
+                    placeholder="Enter your password"
+                    className="input-base pl-10 pr-10"
+                    id="login-password"
+                    autoComplete="current-password"
+                    required
+                    minLength={6}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400 hover:text-dark-200 transition-colors">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || !email.trim() || !password}
+                className="w-full py-3.5 rounded-xl gradient-brand text-white font-semibold text-sm
+                  hover:shadow-glow transition-all duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  flex items-center justify-center gap-2 active:scale-[0.99]"
+                id="email-signin-btn"
+              >
+                {submitting ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-dark-500/30" />
+              <span className="text-xs text-dark-500 font-medium">Or continue with</span>
+              <div className="flex-1 h-px bg-dark-500/30" />
+            </div>
 
             {/* Google Sign In */}
             <button
               onClick={login}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl
+              className="w-full flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl
                 bg-white hover:bg-gray-50 text-gray-800 font-semibold text-sm
                 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.01]
                 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
@@ -74,7 +170,7 @@ export default function Login() {
             </button>
 
             {/* Divider */}
-            <div className="flex items-center gap-3 my-8">
+            <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-dark-500/30" />
               <span className="text-xs text-dark-500 font-medium">New to Skolar?</span>
               <div className="flex-1 h-px bg-dark-500/30" />

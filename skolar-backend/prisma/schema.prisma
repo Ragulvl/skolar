@@ -29,6 +29,9 @@ model User {
   name            String
   email           String   @unique
   googleId        String?  @unique
+  passwordHash    String?
+  authProvider    String   @default("google") // google | local | both
+  emailVerified   Boolean  @default(false)
   avatarUrl       String?
   role            String   // superadmin | admin | principal | vice_principal | chairman | vice_chairman | dean | hod | teacher | student | pending
   institutionId   String?
@@ -53,6 +56,12 @@ model User {
   assessmentResults         AssessmentResult[]
   certificatesEarned        Certificate[]      @relation("StudentCertificates")
   certificatesIssued        Certificate[]      @relation("IssuedCertificates")
+
+  @@index([institutionId])
+  @@index([role])
+  @@index([gradeId])
+  @@index([sectionId])
+  @@index([departmentId])
 }
 
 model AdminInstitutionAssignment {
@@ -91,6 +100,8 @@ model Section {
   teacherAssignments TeacherAssignment[]
 
   @@unique([name, gradeId, institutionId])
+  @@index([gradeId])
+  @@index([institutionId])
 }
 
 model Subject {
@@ -108,6 +119,10 @@ model Subject {
   attendances        Attendance[]
   assessments        Assessment[]
   certificates       Certificate[]
+
+  @@index([gradeId])
+  @@index([institutionId])
+  @@index([departmentId])
 }
 
 model TeacherAssignment {
@@ -120,6 +135,10 @@ model TeacherAssignment {
   teacher   User     @relation(fields: [teacherId], references: [id])
   subject   Subject  @relation(fields: [subjectId], references: [id])
   section   Section? @relation(fields: [sectionId], references: [id])
+
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([sectionId])
 }
 
 model Department {
@@ -158,6 +177,11 @@ model Attendance {
   student   User    @relation("StudentAttendance", fields: [studentId], references: [id])
   teacher   User    @relation("TeacherAttendance", fields: [teacherId], references: [id])
   subject   Subject @relation(fields: [subjectId], references: [id])
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([date])
 }
 
 model Assessment {
@@ -173,6 +197,9 @@ model Assessment {
   creator   User    @relation(fields: [createdBy], references: [id])
   questions AssessmentQuestion[]
   results   AssessmentResult[]
+
+  @@index([subjectId])
+  @@index([createdBy])
 }
 
 model AssessmentQuestion {
@@ -197,6 +224,7 @@ model AssessmentResult {
   student      User       @relation(fields: [studentId], references: [id])
 
   @@unique([assessmentId, studentId])
+  @@index([studentId])
 }
 
 model Certificate {
@@ -210,6 +238,21 @@ model Certificate {
   student   User    @relation("StudentCertificates", fields: [studentId], references: [id])
   issuer    User    @relation("IssuedCertificates", fields: [issuedBy], references: [id])
   subject   Subject @relation(fields: [subjectId], references: [id])
+
+  @@index([studentId])
+  @@index([subjectId])
+}
+
+model VicePrincipalAssignment {
+  id            String  @id @default(uuid())
+  vpId          String
+  gradeId       String?
+  departmentId  String?
+  isActive      Boolean @default(true)
+
+  @@unique([vpId, gradeId])
+  @@unique([vpId, departmentId])
+  @@index([vpId])
 }
 
 model PlatformSetting {

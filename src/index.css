@@ -369,4 +369,24 @@
       padding-right: 2rem;
     }
   }
+
+  .input-base {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border-radius: 0.75rem;
+    background-color: rgb(var(--color-dark-800));
+    border: 1px solid rgb(var(--color-dark-500) / 0.4);
+    font-size: 0.875rem;
+    color: rgb(var(--color-dark-50));
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-base::placeholder {
+    color: rgb(var(--color-dark-400));
+  }
+
+  .input-base:focus {
+    border-color: rgb(var(--color-brand-500));
+  }
 }

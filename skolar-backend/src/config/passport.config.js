@@ -14,32 +14,40 @@ passport.use(new GoogleStrategy({
     const name = profile.displayName || email?.split('@')[0] || 'User'
     const avatarUrl = profile.photos?.[0]?.value || null
 
-    // Check if user exists by googleId or email
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { googleId },
-          { email },
-        ],
-      },
-    })
+    // 1. Check if user exists by googleId (direct match)
+    let user = await prisma.user.findUnique({ where: { googleId } })
 
     if (user) {
-      // Update googleId and avatar if not set
-      if (!user.googleId || !user.avatarUrl) {
+      // Update avatar if missing
+      if (!user.avatarUrl && avatarUrl) {
         user = await prisma.user.update({
           where: { id: user.id },
-          data: {
-            googleId: user.googleId || googleId,
-            avatarUrl: user.avatarUrl || avatarUrl,
-            name: user.name || name,
-          },
+          data: { avatarUrl },
         })
       }
       return done(null, user)
     }
 
-    // New user — check if this is the first user (make them superadmin)
+    // 2. No googleId match — check by email (account linking scenario)
+    user = await prisma.user.findUnique({ where: { email } })
+
+    if (user) {
+      // Existing email/password user signing in with Google for the first time
+      // Auto-link: Google guarantees email ownership, so this is safe
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId,
+          avatarUrl: user.avatarUrl || avatarUrl,
+          name: user.name || name,
+          authProvider: user.passwordHash ? 'both' : 'google',
+          emailVerified: true, // Google guarantees email
+        },
+      })
+      return done(null, user)
+    }
+
+    // 3. New user — check if first user (superadmin)
     const userCount = await prisma.user.count()
     if (userCount === 0) {
       user = await prisma.user.create({
@@ -50,13 +58,14 @@ passport.use(new GoogleStrategy({
           avatarUrl,
           role: 'superadmin',
           isApproved: true,
+          authProvider: 'google',
+          emailVerified: true,
         },
       })
       return done(null, user)
     }
 
-    // Otherwise, return the profile info for the frontend to handle signup
-    // Don't auto-create — let the signup flow handle it with institution code
+    // 4. Otherwise, return profile info for frontend signup flow
     return done(null, {
       isNewUser: true,
       googleId,

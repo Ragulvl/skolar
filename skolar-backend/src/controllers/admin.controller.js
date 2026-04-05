@@ -1,5 +1,42 @@
 import prisma from '../config/prisma.js'
 
+// GET /admin/overview — aggregated stats across all assigned institutions
+export async function getAdminOverview(req, res) {
+  try {
+    const assignments = await prisma.adminInstitutionAssignment.findMany({
+      where: { adminId: req.user.id, isActive: true },
+      select: { institutionId: true },
+    })
+    const institutionIds = assignments.map(a => a.institutionId)
+
+    if (institutionIds.length === 0) {
+      return res.json({ success: true, data: { institutions: 0, students: 0, teachers: 0, pending: 0 } })
+    }
+
+    const roleCounts = await prisma.user.groupBy({
+      by: ['role'],
+      where: { institutionId: { in: institutionIds } },
+      _count: true,
+    })
+
+    const roleMap = {}
+    roleCounts.forEach(r => { roleMap[r.role] = r._count })
+
+    res.json({
+      success: true,
+      data: {
+        institutions: institutionIds.length,
+        students: roleMap.student || 0,
+        teachers: roleMap.teacher || 0,
+        pending: roleMap.pending || 0,
+        totalUsers: Object.values(roleMap).reduce((a, b) => a + b, 0),
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch overview' })
+  }
+}
+
 export async function getMyInstitutions(req, res) {
   try {
     const assignments = await prisma.adminInstitutionAssignment.findMany({
@@ -17,15 +54,12 @@ export async function getMyInstitutions(req, res) {
       return res.json({ success: true, data: [] })
     }
 
-    // Single groupBy query for ALL institutions at once — replaces the N+1 loop
-    // that was doing 3 separate count() calls PER institution
     const roleCounts = await prisma.user.groupBy({
       by: ['institutionId', 'role'],
       where: { institutionId: { in: institutionIds } },
       _count: true,
     })
 
-    // Build a lookup map: { institutionId: { student: N, teacher: N, pending: N } }
     const statsMap = {}
     roleCounts.forEach(rc => {
       if (!statsMap[rc.institutionId]) statsMap[rc.institutionId] = {}
@@ -51,7 +85,6 @@ export async function getInstitutionStats(req, res) {
   try {
     const { id } = req.params
 
-    // Single groupBy for role counts + parallel queries for assessments/attendance
     const [roleCounts, assessments, attendance] = await Promise.all([
       prisma.user.groupBy({
         by: ['role'],
@@ -85,7 +118,30 @@ export async function getPendingUsers(req, res) {
     const { institutionId } = req.params
     const users = await prisma.user.findMany({
       where: { institutionId, role: 'pending' },
-      select: { id: true, name: true, email: true, createdAt: true },
+      select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    res.json({ success: true, data: users })
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch pending users' })
+  }
+}
+
+// GET /admin/all-pending — pending users across ALL assigned institutions
+export async function getAllPendingUsers(req, res) {
+  try {
+    const assignments = await prisma.adminInstitutionAssignment.findMany({
+      where: { adminId: req.user.id, isActive: true },
+      select: { institutionId: true },
+    })
+    const institutionIds = assignments.map(a => a.institutionId)
+
+    const users = await prisma.user.findMany({
+      where: { institutionId: { in: institutionIds }, role: 'pending' },
+      select: {
+        id: true, name: true, email: true, avatarUrl: true, createdAt: true,
+        institution: { select: { id: true, name: true, type: true } },
+      },
       orderBy: { createdAt: 'desc' },
     })
     res.json({ success: true, data: users })
@@ -116,3 +172,70 @@ export async function approveUser(req, res) {
     res.status(500).json({ success: false, error: 'Failed to approve user' })
   }
 }
+
+// PATCH /admin/reject-user
+export async function rejectUser(req, res) {
+  try {
+    const { userId } = req.body
+    if (!userId) return res.status(400).json({ success: false, error: 'userId is required' })
+
+    await prisma.user.delete({ where: { id: userId } })
+    res.json({ success: true, data: { message: 'User rejected and removed' } })
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to reject user' })
+  }
+}
+
+// GET /admin/reports/:institutionId
+export async function getAdminReports(req, res) {
+  try {
+    const { institutionId } = req.params
+
+    const [attendanceStats, assessmentAvg, roleCounts] = await Promise.all([
+      prisma.attendance.groupBy({
+        by: ['status'],
+        where: { student: { institutionId } },
+        _count: true,
+      }),
+      prisma.assessmentResult.aggregate({
+        where: { student: { institutionId } },
+        _avg: { score: true },
+        _count: true,
+      }),
+      prisma.user.groupBy({
+        by: ['role'],
+        where: { institutionId },
+        _count: true,
+      }),
+    ])
+
+    const attMap = {}
+    attendanceStats.forEach(a => { attMap[a.status] = a._count })
+    const attTotal = Object.values(attMap).reduce((a, b) => a + b, 0)
+
+    const roleMap = {}
+    roleCounts.forEach(r => { roleMap[r.role] = r._count })
+
+    res.json({
+      success: true,
+      data: {
+        attendance: {
+          present: attMap.present || 0, absent: attMap.absent || 0, total: attTotal,
+          percentage: attTotal > 0 ? ((attMap.present || 0) / attTotal * 100).toFixed(1) : '0',
+        },
+        assessments: {
+          avgScore: assessmentAvg._avg.score ? Math.round(assessmentAvg._avg.score) : 0,
+          totalResults: assessmentAvg._count,
+        },
+        users: {
+          students: roleMap.student || 0,
+          teachers: roleMap.teacher || 0,
+          total: Object.values(roleMap).reduce((a, b) => a + b, 0),
+        },
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch reports' })
+  }
+}
+

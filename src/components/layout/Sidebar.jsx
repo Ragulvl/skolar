@@ -27,7 +27,11 @@ const sidebarConfig = {
     title: 'Admin',
     basePath: '/dashboard/admin',
     links: [
-      { to: '', icon: LayoutDashboard, label: 'Dashboard', end: true },
+      { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+      { to: '/institutions', icon: Building2, label: 'Institutions' },
+      { to: '/pending', icon: UserCheck, label: 'Approvals' },
+      { to: '/reports', icon: BarChart3, label: 'Reports' },
+      { to: '/settings', icon: Settings, label: 'Settings' },
     ]
   },
   principal: {
@@ -42,6 +46,8 @@ const sidebarConfig = {
         { to: '/students', icon: GraduationCap, label: 'Students' },
         { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
         { to: '/assessments', icon: FileText, label: 'Assessments' },
+        { to: '/pending', icon: UserCheck, label: 'Approvals' },
+        { to: '/reports', icon: BarChart3, label: 'Reports' },
       ]
     },
     college: {
@@ -49,6 +55,11 @@ const sidebarConfig = {
       basePath: '/dashboard/college/principal',
       links: [
         { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+        { to: '/departments', icon: Building2, label: 'Departments' },
+        { to: '/staff', icon: UserCog, label: 'Staff' },
+        { to: '/students', icon: GraduationCap, label: 'Students' },
+        { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+        { to: '/pending', icon: UserCheck, label: 'Approvals' },
       ]
     }
   },
@@ -58,10 +69,11 @@ const sidebarConfig = {
       basePath: '/dashboard/school/vice-principal',
       links: [
         { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
-        { to: '/grades', icon: Layers, label: 'Grades & Sections' },
+        { to: '/grades', icon: Layers, label: 'My Grades' },
         { to: '/teachers', icon: UserCog, label: 'Teachers' },
         { to: '/students', icon: GraduationCap, label: 'Students' },
         { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+        { to: '/reports', icon: BarChart3, label: 'Reports' },
       ]
     },
     college: {
@@ -69,6 +81,11 @@ const sidebarConfig = {
       basePath: '/dashboard/college/vice-principal',
       links: [
         { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+        { to: '/departments', icon: Building2, label: 'Departments' },
+        { to: '/staff', icon: UserCog, label: 'Staff' },
+        { to: '/students', icon: GraduationCap, label: 'Students' },
+        { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+        { to: '/pending', icon: UserCheck, label: 'Approvals' },
       ]
     }
   },
@@ -77,6 +94,11 @@ const sidebarConfig = {
     basePath: '/dashboard/college/chairman',
     links: [
       { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+      { to: '/departments', icon: Building2, label: 'Departments' },
+      { to: '/staff', icon: UserCog, label: 'Staff' },
+      { to: '/students', icon: GraduationCap, label: 'Students' },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/pending', icon: UserCheck, label: 'Approvals' },
     ]
   },
   vice_chairman: {
@@ -84,6 +106,11 @@ const sidebarConfig = {
     basePath: '/dashboard/college/vice-chairman',
     links: [
       { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+      { to: '/departments', icon: Building2, label: 'Departments' },
+      { to: '/staff', icon: UserCog, label: 'Staff' },
+      { to: '/students', icon: GraduationCap, label: 'Students' },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/pending', icon: UserCheck, label: 'Approvals' },
     ]
   },
   dean: {
@@ -91,6 +118,11 @@ const sidebarConfig = {
     basePath: '/dashboard/college/dean',
     links: [
       { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+      { to: '/departments', icon: Building2, label: 'Departments' },
+      { to: '/staff', icon: UserCog, label: 'Staff' },
+      { to: '/students', icon: GraduationCap, label: 'Students' },
+      { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+      { to: '/reports', icon: BarChart3, label: 'Reports' },
     ]
   },
   hod: {
@@ -98,6 +130,12 @@ const sidebarConfig = {
     basePath: '/dashboard/college/hod',
     links: [
       { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+      { to: '/teachers', icon: UserCog, label: 'Teachers' },
+      { to: '/subjects', icon: BookOpen, label: 'Subjects' },
+      { to: '/students', icon: GraduationCap, label: 'Students' },
+      { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+      { to: '/assessments', icon: FileText, label: 'Assessments' },
+      { to: '/reports', icon: BarChart3, label: 'Reports' },
     ]
   },
   teacher: {
@@ -105,10 +143,12 @@ const sidebarConfig = {
       title: 'Teacher',
       basePath: '/dashboard/school/teacher',
       links: [
-        { to: '', icon: LayoutDashboard, label: 'My Classes', end: true },
+        { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+        { to: '/classes', icon: BookOpen, label: 'My Classes' },
         { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
         { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/students', icon: GraduationCap, label: 'My Students' },
+        { to: '/results', icon: BarChart3, label: 'Results' },
         { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     },
@@ -116,7 +156,13 @@ const sidebarConfig = {
       title: 'Teacher',
       basePath: '/dashboard/college/teacher',
       links: [
-        { to: '', icon: LayoutDashboard, label: 'My Classes', end: true },
+        { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+        { to: '/classes', icon: BookOpen, label: 'My Classes' },
+        { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+        { to: '/assessments', icon: FileText, label: 'Assessments' },
+        { to: '/students', icon: GraduationCap, label: 'My Students' },
+        { to: '/results', icon: BarChart3, label: 'Results' },
+        { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     }
   },
@@ -128,6 +174,7 @@ const sidebarConfig = {
         { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
         { to: '/subjects', icon: BookOpen, label: 'My Subjects' },
         { to: '/attendance', icon: Calendar, label: 'Attendance' },
+        { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/grades', icon: BarChart3, label: 'Grades' },
         { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
@@ -137,6 +184,11 @@ const sidebarConfig = {
       basePath: '/dashboard/college/student',
       links: [
         { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
+        { to: '/subjects', icon: BookOpen, label: 'My Subjects' },
+        { to: '/attendance', icon: Calendar, label: 'Attendance' },
+        { to: '/assessments', icon: FileText, label: 'Assessments' },
+        { to: '/grades', icon: BarChart3, label: 'Grades' },
+        { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     }
   }

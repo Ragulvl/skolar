@@ -1,16 +1,19 @@
 import { Router } from 'express'
 import passport from '../config/passport.config.js'
-import { googleCallback, getMe, signup, logout, validateInstitutionCode, searchInstitutions } from '../controllers/auth.controller.js'
+import {
+  googleCallback, getMe, signup, logout,
+  validateInstitutionCode, searchInstitutions,
+  register, loginWithPassword, setPassword,
+} from '../controllers/auth.controller.js'
 
 const router = Router()
 
-// Initiate Google OAuth
+// ─── Google OAuth ──────────────────────────
 router.get('/google', passport.authenticate('google', {
   scope: ['profile', 'email'],
   session: false,
 }))
 
-// Google OAuth callback
 router.get('/google/callback',
   passport.authenticate('google', {
     session: false,
@@ -19,19 +22,16 @@ router.get('/google/callback',
   googleCallback
 )
 
-// Get current user
+// ─── Email/Password Auth ───────────────────
+router.post('/register', register)
+router.post('/login', loginWithPassword)
+router.post('/set-password', setPassword)
+
+// ─── Common ────────────────────────────────
 router.get('/me', getMe)
-
-// Search institutions by name
 router.get('/search-institutions', searchInstitutions)
-
-// Sign up with institution code
 router.post('/signup', signup)
-
-// Validate institution code
 router.post('/validate-code', validateInstitutionCode)
-
-// Logout
 router.post('/logout', logout)
 
 export default router
