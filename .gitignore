@@ -1,0 +1,37 @@
+# dependencies
+node_modules
+skolar-backend/node_modules
+
+# build output
+dist
+dist-ssr
+
+# env files — never commit secrets
+.env
+.env.local
+.env.production
+skolar-backend/.env
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# prisma
+skolar-backend/prisma/migrations/
+
+# misc
+*.local

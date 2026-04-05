@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Institution {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // school | college
+  code      String   @unique
+  city      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                     User[]
+  sections                  Section[]
+  subjects                  Subject[]
+  departments               Department[]
+  adminAssignments          AdminInstitutionAssignment[]
+}
+
+model User {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  googleId        String?  @unique
+  avatarUrl       String?
+  role            String   // superadmin | admin | principal | vice_principal | chairman | vice_chairman | dean | hod | teacher | student | pending
+  institutionId   String?
+  isApproved      Boolean  @default(false)
+  gradeId         String?
+  sectionId       String?
+  departmentId    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  institution     Institution? @relation(fields: [institutionId], references: [id])
+  grade           Grade?       @relation(fields: [gradeId], references: [id])
+  section         Section?     @relation(fields: [sectionId], references: [id])
+  department      Department?  @relation(fields: [departmentId], references: [id])
+
+  adminAssignments          AdminInstitutionAssignment[]
+  teacherAssignments        TeacherAssignment[]
+  teacherDeptAssignments    TeacherDeptAssignment[]
+  attendancesAsStudent      Attendance[]       @relation("StudentAttendance")
+  attendancesAsTeacher      Attendance[]       @relation("TeacherAttendance")
+  assessmentsCreated        Assessment[]
+  assessmentResults         AssessmentResult[]
+  certificatesEarned        Certificate[]      @relation("StudentCertificates")
+  certificatesIssued        Certificate[]      @relation("IssuedCertificates")
+}
+
+model AdminInstitutionAssignment {
+  id            String   @id @default(uuid())
+  adminId       String
+  institutionId String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  admin         User        @relation(fields: [adminId], references: [id])
+  institution   Institution @relation(fields: [institutionId], references: [id])
+
+  @@unique([adminId, institutionId])
+}
+
+// Master lookup table — only 15 rows (PreKG, LKG, UKG, 1–12)
+model Grade {
+  id       String @id @default(uuid())
+  name     String @unique // PreKG | LKG | UKG | 1 | 2 | ... | 12
+  category String         // early | primary | middle | high | higher_sec
+
+  sections Section[]
+  subjects Subject[]
+  users    User[]
+}
+
+model Section {
+  id            String @id @default(uuid())
+  name          String // A | B | C
+  gradeId       String
+  institutionId String
+
+  grade       Grade       @relation(fields: [gradeId], references: [id])
+  institution Institution @relation(fields: [institutionId], references: [id])
+  users       User[]
+  teacherAssignments TeacherAssignment[]
+
+  @@unique([name, gradeId, institutionId])
+}
+
+model Subject {
+  id            String  @id @default(uuid())
+  name          String
+  gradeId       String?
+  institutionId String?
+  departmentId  String?
+
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  grade         Grade?       @relation(fields: [gradeId], references: [id])
+  department    Department?  @relation(fields: [departmentId], references: [id])
+
+  teacherAssignments TeacherAssignment[]
+  attendances        Attendance[]
+  assessments        Assessment[]
+  certificates       Certificate[]
+}
+
+model TeacherAssignment {
+  id        String  @id @default(uuid())
+  teacherId String
+  subjectId String
+  sectionId String?
+  isActive  Boolean @default(true)
+
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  section   Section? @relation(fields: [sectionId], references: [id])
+}
+
+model Department {
+  id            String  @id @default(uuid())
+  name          String
+  institutionId String
+  deanId        String?
+  hodId         String?
+
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  subjects      Subject[]
+  users         User[]
+  teacherDeptAssignments TeacherDeptAssignment[]
+}
+
+model TeacherDeptAssignment {
+  id           String @id @default(uuid())
+  teacherId    String
+  departmentId String
+
+  teacher      User       @relation(fields: [teacherId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  @@unique([teacherId, departmentId])
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  studentId String
+  subjectId String
+  teacherId String
+  date      DateTime
+  status    String   // present | absent | late
+  createdAt DateTime @default(now())
+
+  student   User    @relation("StudentAttendance", fields: [studentId], references: [id])
+  teacher   User    @relation("TeacherAttendance", fields: [teacherId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+}
+
+model Assessment {
+  id        String   @id @default(uuid())
+  title     String
+  type      String   // mcq | descriptive
+  subjectId String
+  createdBy String
+  dueDate   DateTime
+  createdAt DateTime @default(now())
+
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  creator   User    @relation(fields: [createdBy], references: [id])
+  questions AssessmentQuestion[]
+  results   AssessmentResult[]
+}
+
+model AssessmentQuestion {
+  id           String  @id @default(uuid())
+  assessmentId String
+  question     String
+  options      Json?
+  answer       String?
+
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+}
+
+model AssessmentResult {
+  id           String   @id @default(uuid())
+  assessmentId String
+  studentId    String
+  score        Float
+  answers      Json?
+  submittedAt  DateTime @default(now())
+
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId])
+}
+
+model Certificate {
+  id        String   @id @default(uuid())
+  studentId String
+  subjectId String
+  title     String   @default("Certificate of Excellence")
+  issuedBy  String
+  issuedAt  DateTime @default(now())
+
+  student   User    @relation("StudentCertificates", fields: [studentId], references: [id])
+  issuer    User    @relation("IssuedCertificates", fields: [issuedBy], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
