@@ -122,6 +122,7 @@ const CollegeDeanStaff = lazy(() => import('./pages/college/dean/Staff'))
 const CollegeDeanStudents = lazy(() => import('./pages/college/dean/Students'))
 const CollegeDeanReports = lazy(() => import('./pages/college/dean/Reports'))
 const CollegeDeanAttendance = lazy(() => import('./pages/college/dean/Attendance'))
+const CollegeDeanAssessments = lazy(() => import('./pages/college/dean/Assessments'))
 
 // College HOD
 const CollegeHODOverview = lazy(() => import('./pages/college/hod/Overview'))
@@ -348,6 +349,7 @@ export default function App() {
         <Route path="staff" element={<CollegeDeanStaff />} />
         <Route path="students" element={<CollegeDeanStudents />} />
         <Route path="attendance" element={<CollegeDeanAttendance />} />
+        <Route path="assessments" element={<CollegeDeanAssessments />} />
         <Route path="reports" element={<CollegeDeanReports />} />
       </Route>
 

@@ -122,6 +122,7 @@ const sidebarConfig = {
       { to: '/staff', icon: UserCog, label: 'Staff' },
       { to: '/students', icon: GraduationCap, label: 'Students' },
       { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+      { to: '/assessments', icon: FileText, label: 'Assessments' },
       { to: '/reports', icon: BarChart3, label: 'Reports' },
     ]
   },

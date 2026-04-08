@@ -126,3 +126,52 @@ export async function getMyAssignments(req, res) {
     res.status(500).json({ success: false, error: 'Failed to fetch assignments' })
   }
 }
+
+// GET /attendance/markable-students/:subjectId?date=YYYY-MM-DD
+export async function getMarkableStudents(req, res) {
+  try {
+    const { subjectId } = req.params
+    const date = req.query.date || new Date().toISOString().split('T')[0]
+
+    const subject = await prisma.subject.findUnique({
+      where: { id: subjectId },
+      select: { departmentId: true, gradeId: true, name: true },
+    })
+    if (!subject) return res.status(404).json({ success: false, error: 'Subject not found' })
+
+    // Get students in the subject's department (college) or grade (school)
+    const where = { role: 'student' }
+    if (subject.departmentId) where.departmentId = subject.departmentId
+    else if (subject.gradeId) where.gradeId = subject.gradeId
+    else return res.json({ success: true, data: { students: [], existing: [] } })
+
+    const [students, existing] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: { id: true, name: true, email: true },
+        orderBy: { name: 'asc' },
+      }),
+      // Check if attendance already marked for this date+subject
+      prisma.attendance.findMany({
+        where: {
+          subjectId,
+          date: new Date(date + 'T00:00:00.000Z'),
+        },
+        select: { studentId: true, status: true },
+      }),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        subjectName: subject.name,
+        students,
+        existing: existing.map(e => ({ studentId: e.studentId, status: e.status })),
+        date,
+      },
+    })
+  } catch (error) {
+    console.error('Markable students error:', error)
+    res.status(500).json({ success: false, error: 'Failed to fetch students' })
+  }
+}
