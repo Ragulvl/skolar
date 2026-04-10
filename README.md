@@ -27,21 +27,6 @@ The main challenge was supporting both school and college structures under one p
 
 ---
 
-## Screenshots
-
-<div align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Super Admin Dashboard" width="90%" />
-  <p><sub>Super Admin Dashboard -- institution stats, enrollment trends, attendance analytics</sub></p>
-  <br/>
-  <img src="docs/screenshots/teacher.png" alt="Teacher Attendance Panel" width="90%" />
-  <p><sub>Teacher Panel -- mark attendance per subject, section, and date</sub></p>
-  <br/>
-  <img src="docs/screenshots/student.png" alt="Student Assessment" width="90%" />
-  <p><sub>Student Assessment -- MCQ quiz interface with auto-grading</sub></p>
-</div>
-
----
-
 ## Architecture
 
 <div align="center">
