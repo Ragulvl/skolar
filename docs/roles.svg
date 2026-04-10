@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" width="900" height="350">
+  <defs>
+    <linearGradient id="r-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#0f1628"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="350" fill="url(#r-bg)" rx="10"/>
+
+  <!-- Grid -->
+  <g opacity="0.03" stroke="#60a5fa" stroke-width="0.5">
+    <line x1="0" y1="70" x2="900" y2="70"/><line x1="0" y1="140" x2="900" y2="140"/>
+    <line x1="0" y1="210" x2="900" y2="210"/><line x1="0" y1="280" x2="900" y2="280"/>
+    <line x1="180" y1="0" x2="180" y2="350"/><line x1="360" y1="0" x2="360" y2="350"/>
+    <line x1="540" y1="0" x2="540" y2="350"/><line x1="720" y1="0" x2="720" y2="350"/>
+  </g>
+
+  <text x="450" y="30" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#4a5568" letter-spacing="3">ROLE HIERARCHY — 13 ROLES ACROSS 3 TIERS</text>
+
+  <!-- Tier labels on left -->
+  <text x="25" y="90" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#374151" letter-spacing="1" transform="rotate(-90, 25, 90)">PLATFORM</text>
+  <text x="25" y="195" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#374151" letter-spacing="1" transform="rotate(-90, 25, 195)">INSTITUTION</text>
+  <text x="25" y="300" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#374151" letter-spacing="1" transform="rotate(-90, 25, 300)">USERS</text>
+
+  <!-- Tier divider lines -->
+  <line x1="45" y1="125" x2="880" y2="125" stroke="#1e293b" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="45" y1="245" x2="880" y2="245" stroke="#1e293b" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- TIER 1: Platform Level -->
+  <!-- Super Admin -->
+  <g>
+    <rect x="350" y="55" width="130" height="50" rx="8" fill="#1e293b" stroke="#f43f5e" stroke-width="1.2">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="380" cy="80" r="6" fill="none" stroke="#f43f5e" stroke-width="1" opacity="0.6"/>
+    <text x="380" y="83" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#f43f5e" font-weight="600">S</text>
+    <text x="420" y="78" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#e2e8f0" font-weight="600">Super Admin</text>
+    <text x="393" y="93" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">Full platform control</text>
+  </g>
+
+  <!-- Admin -->
+  <g>
+    <rect x="530" y="55" width="130" height="50" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="0.3s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="560" cy="80" r="6" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.6"/>
+    <text x="560" y="83" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#f59e0b" font-weight="600">A</text>
+    <text x="610" y="78" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#e2e8f0" font-weight="600">Admin</text>
+    <text x="567" y="93" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">Multi-institution</text>
+  </g>
+
+  <!-- Connection: Super Admin -> Admin -->
+  <path id="rp1" d="M480,80 L530,80" fill="none" stroke="#f43f5e" stroke-width="1" stroke-dasharray="4,3" opacity="0.4">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- TIER 2: Institution Level - School Side -->
+  <text x="220" y="147" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#2563eb" letter-spacing="1" opacity="0.5">SCHOOL</text>
+
+  <!-- Principal -->
+  <g>
+    <rect x="80" y="160" width="120" height="44" rx="8" fill="#1e293b" stroke="#2563eb" stroke-width="1">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="140" y="180" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">Principal</text>
+    <text x="140" y="194" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">School head</text>
+  </g>
+
+  <!-- Vice Principal -->
+  <g>
+    <rect x="220" y="160" width="120" height="44" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="1">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="0.7s" repeatCount="indefinite"/>
+    </rect>
+    <text x="280" y="180" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">Vice Principal</text>
+    <text x="280" y="194" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">Grade-scoped</text>
+  </g>
+
+  <!-- Connection -->
+  <path d="M200,182 L220,182" fill="none" stroke="#2563eb" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.4"/>
+
+  <!-- TIER 2: Institution Level - College Side -->
+  <text x="650" y="147" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#7c3aed" letter-spacing="1" opacity="0.5">COLLEGE</text>
+
+  <!-- Chairman -->
+  <g>
+    <rect x="490" y="160" width="110" height="44" rx="8" fill="#1e293b" stroke="#7c3aed" stroke-width="1">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="0.6s" repeatCount="indefinite"/>
+    </rect>
+    <text x="545" y="180" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">Chairman</text>
+    <text x="545" y="194" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">College head</text>
+  </g>
+
+  <!-- Dean -->
+  <g>
+    <rect x="618" y="160" width="100" height="44" rx="8" fill="#1e293b" stroke="#8b5cf6" stroke-width="1">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="0.8s" repeatCount="indefinite"/>
+    </rect>
+    <text x="668" y="180" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">Dean</text>
+    <text x="668" y="194" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">Faculty-level</text>
+  </g>
+
+  <!-- HOD -->
+  <g>
+    <rect x="736" y="160" width="100" height="44" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="1s" repeatCount="indefinite"/>
+    </rect>
+    <text x="786" y="180" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">HOD</text>
+    <text x="786" y="194" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">Dept-level</text>
+  </g>
+
+  <!-- Connections -->
+  <path d="M600,182 L618,182" fill="none" stroke="#7c3aed" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.4"/>
+  <path d="M718,182 L736,182" fill="none" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.4"/>
+
+  <!-- TIER 3: Operational -->
+  <!-- Teacher (shared) -->
+  <g>
+    <rect x="300" y="265" width="140" height="50" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.2">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="1.2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="370" y="288" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#e2e8f0" font-weight="600">Teacher</text>
+    <text x="370" y="304" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">Attendance, assessments, certs</text>
+  </g>
+
+  <!-- Student (shared) -->
+  <g>
+    <rect x="470" y="265" width="140" height="50" rx="8" fill="#1e293b" stroke="#22d3ee" stroke-width="1.2">
+      <animate attributeName="stroke-opacity" values="1;0.4;1" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="540" y="288" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" fill="#e2e8f0" font-weight="600">Student</text>
+    <text x="540" y="304" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">View grades, take assessments</text>
+  </g>
+
+  <!-- Vertical connections from institution to operational -->
+  <path id="rc1" d="M180,204 L180,225 L370,225 L370,265" fill="none" stroke="#2563eb" stroke-width="1" stroke-dasharray="4,3" opacity="0.3">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="2.5s" repeatCount="indefinite"/>
+  </path>
+  <path id="rc2" d="M650,204 L650,225 L540,225 L540,265" fill="none" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4,3" opacity="0.3">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="2.5s" begin="0.5s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- "Both" label -->
+  <rect x="418" y="220" width="76" height="16" rx="4" fill="#111827" stroke="#1e293b" stroke-width="0.8"/>
+  <text x="456" y="231" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#64748b">School + College</text>
+
+  <!-- Top connections from platform to institution -->
+  <path d="M415,105 L200,140 L200,160" fill="none" stroke="#f43f5e" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.25">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <path d="M415,105 L650,140 L650,160" fill="none" stroke="#f43f5e" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.25">
+    <animate attributeName="stroke-dashoffset" values="0;-14" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Bottom stat bar -->
+  <rect x="150" y="330" width="600" height="14" rx="7" fill="#111827" stroke="#1e293b" stroke-width="0.8" opacity="0.7"/>
+  <text x="450" y="340" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#4a5568" letter-spacing="1">13 ROLES  |  SCHOOL + COLLEGE  |  ROLE-BASED DASHBOARDS  |  PERMISSION SCOPING</text>
+</svg>
