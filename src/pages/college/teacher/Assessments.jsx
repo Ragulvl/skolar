@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FileText, Plus, Eye, Trash2, CheckCircle2, Loader2, BookOpen, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import useAPI, { invalidateCache } from '../../../hooks/useAPI'
+import api from '../../../api/client'
 
 export default function CollegeTeacherAssessments() {
   const { data: assessments, loading } = useAPI('/assessments/my', { fallback: [] })
@@ -103,14 +104,8 @@ function CreateAssessmentForm({ subjects, onClose }) {
           answer: q.answer,
         })) : undefined,
       }
-      const resp = await fetch('/api/assessments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      })
-      const data = await resp.json()
-      if (data.success) {
+      const resp = await api.post('/assessments/create', body)
+      if (resp.data.success) {
         invalidateCache('/assessments')
         onClose()
       }

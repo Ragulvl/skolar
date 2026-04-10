@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FileText, Clock, CheckCircle2, ArrowRight, Loader2, ChevronLeft } from 'lucide-react'
 import useAPI, { invalidateCache } from '../../../hooks/useAPI'
+import api from '../../../api/client'
 
 export default function CollegeStudentAssessments() {
   const { data, loading } = useAPI('/assessments/pending', { fallback: {} })
@@ -119,15 +120,9 @@ function TakeAssessment({ assessmentId, onBack }) {
   const handleSubmit = async () => {
     if (submitting) return; setSubmitting(true)
     try {
-      const resp = await fetch('/api/assessments/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ assessmentId, answers }),
-      })
-      const data = await resp.json()
-      if (data.success) {
-        setResult(data.data)
+      const resp = await api.post('/assessments/submit', { assessmentId, answers })
+      if (resp.data.success) {
+        setResult(resp.data.data)
       }
     } catch (err) {
       console.error(err)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ClipboardCheck, ChevronLeft, ChevronRight, Calendar, TrendingUp, BookOpen, Check, X, Clock, Users, Loader2, CheckCircle2 } from 'lucide-react'
 import StatCard from '../../../components/ui/StatCard'
 import useAPI, { invalidateCache } from '../../../hooks/useAPI'
+import api from '../../../api/client'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 
 function formatDate(d) { return new Date(d).toISOString().split('T')[0] }
@@ -167,9 +168,8 @@ function MarkAttendanceTab() {
     if (!allMarked || submitting) return; setSubmitting(true)
     try {
       const records = students.map(s => ({ studentId: s.id, status: statuses[s.id] }))
-      const resp = await fetch('/api/attendance/mark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ subjectId: selectedSubject, date: selectedDate, records }) })
-      const data = await resp.json()
-      if (data.success) { setSubmitted(true); invalidateCache('/attendance'); invalidateCache('/hod/attendance') }
+      const resp = await api.post('/attendance/mark', { subjectId: selectedSubject, date: selectedDate, records })
+      if (resp.data.success) { setSubmitted(true); invalidateCache('/attendance'); invalidateCache('/hod/attendance') }
     } catch (err) { console.error(err) } finally { setSubmitting(false) }
   }
 

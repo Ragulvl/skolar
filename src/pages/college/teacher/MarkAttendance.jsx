@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ClipboardCheck, Check, X, Clock, Users, BookOpen, Calendar, CheckCircle2, Loader2 } from 'lucide-react'
 import useAPI, { invalidateCache } from '../../../hooks/useAPI'
+import api from '../../../api/client'
 
 const STATUS_CONFIG = {
   present: { icon: Check, label: 'P', color: 'bg-success/15 text-success border-success/30', active: 'bg-success text-white border-success' },
@@ -59,14 +60,8 @@ export default function CollegeTeacherAttendance() {
     setSubmitting(true)
     try {
       const records = students.map(s => ({ studentId: s.id, status: statuses[s.id] }))
-      const resp = await fetch('/api/attendance/mark', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ subjectId: selectedSubject, date: selectedDate, records }),
-      })
-      const data = await resp.json()
-      if (data.success) {
+      const resp = await api.post('/attendance/mark', { subjectId: selectedSubject, date: selectedDate, records })
+      if (resp.data.success) {
         setSubmitted(true)
         invalidateCache('/attendance')
         invalidateCache('/hod/attendance')
