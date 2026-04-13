@@ -8,7 +8,7 @@ export async function getStudentDashboard(req, res) {
     const studentId = req.user.id
     const deptId = req.user.departmentId
 
-    const [attendance, assessmentResults, certificates, subjects] = await Promise.all([
+    const [attendance, assessmentResults, subjects] = await Promise.all([
       prisma.attendance.groupBy({
         by: ['status'],
         where: { studentId },
@@ -19,11 +19,16 @@ export async function getStudentDashboard(req, res) {
         _avg: { score: true },
         _count: true,
       }),
-      prisma.certificate.count({ where: { studentId } }),
       deptId
         ? prisma.subject.findMany({
             where: { departmentId: deptId },
-            select: { id: true, name: true },
+            select: {
+              id: true, name: true,
+              teacherAssignments: {
+                where: { isActive: true },
+                select: { teacher: { select: { name: true } } },
+              },
+            },
           })
         : Promise.resolve([]),
     ])
@@ -46,8 +51,11 @@ export async function getStudentDashboard(req, res) {
           avgScore: assessmentResults._avg.score ? Math.round(assessmentResults._avg.score) : 0,
           totalTaken: assessmentResults._count,
         },
-        certificates,
-        subjects,
+        subjects: subjects.map(s => ({
+          id: s.id,
+          name: s.name,
+          teachers: (s.teacherAssignments || []).map(ta => ta.teacher.name),
+        })),
       },
     })
   } catch (error) {
@@ -62,17 +70,32 @@ export async function getStudentDashboard(req, res) {
 export async function getStudentOwnAttendance(req, res) {
   try {
     const studentId = req.user.id
+    const { cursor, limit: rawLimit } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
 
-    const records = await prisma.attendance.findMany({
+    const query = {
       where: { studentId },
       include: { subject: { select: { name: true } } },
       orderBy: { date: 'desc' },
-      take: 100,
-    })
+      take: limit + 1,
+    }
+
+    if (cursor) {
+      query.cursor = { id: cursor }
+      query.skip = 1
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.attendance.findMany(query),
+      prisma.attendance.count({ where: { studentId } }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
 
     // Group by date for calendar view
     const byDate = {}
-    records.forEach(r => {
+    items.forEach(r => {
       const key = r.date.toISOString().split('T')[0]
       if (!byDate[key]) byDate[key] = { date: key, records: [] }
       byDate[key].records.push({
@@ -94,7 +117,7 @@ export async function getStudentOwnAttendance(req, res) {
     res.json({
       success: true,
       data: {
-        records: Object.values(byDate).slice(0, 30),
+        records: Object.values(byDate),
         stats: {
           present: attMap.present || 0,
           absent: attMap.absent || 0,
@@ -102,6 +125,11 @@ export async function getStudentOwnAttendance(req, res) {
           total: attTotal,
           percentage: attTotal > 0 ? ((attMap.present || 0) / attTotal * 100).toFixed(1) : '0',
         },
+      },
+      pagination: {
+        total,
+        hasMore,
+        nextCursor: hasMore ? items[items.length - 1]?.id : null,
       },
     })
   } catch (error) {
@@ -115,8 +143,10 @@ export async function getStudentOwnAttendance(req, res) {
 export async function getStudentAssessments(req, res) {
   try {
     const studentId = req.user.id
+    const { cursor, limit: rawLimit } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
 
-    const results = await prisma.assessmentResult.findMany({
+    const query = {
       where: { studentId },
       include: {
         assessment: {
@@ -127,11 +157,25 @@ export async function getStudentAssessments(req, res) {
         },
       },
       orderBy: { submittedAt: 'desc' },
-    })
+      take: limit + 1,
+    }
+
+    if (cursor) {
+      query.cursor = { id: cursor }
+      query.skip = 1
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.assessmentResult.findMany(query),
+      prisma.assessmentResult.count({ where: { studentId } }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
 
     res.json({
       success: true,
-      data: results.map(r => ({
+      data: items.map(r => ({
         id: r.id,
         assessmentTitle: r.assessment.title,
         assessmentType: r.assessment.type,
@@ -140,6 +184,7 @@ export async function getStudentAssessments(req, res) {
         submittedAt: r.submittedAt,
         dueDate: r.assessment.dueDate,
       })),
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
     })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch assessments' })
@@ -183,27 +228,6 @@ export async function getStudentSubjects(req, res) {
   }
 }
 
-// ──────────────────────────────────────────────
-// GET /student/certificates — Own certificates
-// ──────────────────────────────────────────────
-export async function getStudentCertificates(req, res) {
-  try {
-    const studentId = req.user.id
-
-    const certs = await prisma.certificate.findMany({
-      where: { studentId },
-      include: {
-        subject: { select: { name: true } },
-        issuer: { select: { name: true } },
-      },
-      orderBy: { issuedAt: 'desc' },
-    })
-
-    res.json({ success: true, data: certs })
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch certificates' })
-  }
-}
 
 // ──────────────────────────────────────────────
 // GET /student/grades — Own grades/scores summary
@@ -212,7 +236,7 @@ export async function getStudentGrades(req, res) {
   try {
     const studentId = req.user.id
 
-    // Per-subject average score
+    // Per-subject average score — load limited results
     const results = await prisma.assessmentResult.findMany({
       where: { studentId },
       include: {
@@ -220,6 +244,7 @@ export async function getStudentGrades(req, res) {
           select: { subject: { select: { id: true, name: true } } },
         },
       },
+      take: 100,
     })
 
     const subjectScores = {}

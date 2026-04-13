@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { BarChart3, FileText, Download } from 'lucide-react'
+import { BarChart3, FileText, Download, Users, GraduationCap, TrendingUp } from 'lucide-react'
 import StatCard from '../../components/ui/StatCard'
 import useAPI from '../../hooks/useAPI'
 import AttendanceDonut from '../../components/charts/AttendanceDonut'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 export default function AdminReports() {
   const { data: institutions } = useAPI('/admin/institutions', { fallback: [], staleTime: 60_000 })
@@ -25,7 +26,7 @@ export default function AdminReports() {
         <select
           value={selectedInst}
           onChange={(e) => setSelectedInst(e.target.value)}
-          className="w-full sm:w-80 appearance-none px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-500/40
+          className="w-full sm:w-80 appearance-none select-styled px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-500/40
             text-sm text-dark-50 focus:outline-none focus:border-brand-500"
         >
           <option value="">Choose institution...</option>
@@ -39,9 +40,9 @@ export default function AdminReports() {
         <div className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={BarChart3} label="Attendance %" value={loading ? '—' : `${att.percentage || 0}%`} />
-            <StatCard icon={FileText} label="Avg Score" value={loading ? '—' : (assess.avgScore || 0).toString()} />
-            <StatCard icon={FileText} label="Submissions" value={loading ? '—' : (assess.totalResults || 0).toString()} />
-            <StatCard icon={FileText} label="Total Users" value={loading ? '—' : (users.total || 0).toString()} />
+            <StatCard icon={TrendingUp} label="Avg Score" value={loading ? '—' : (assess.avgScore || 0).toString()} />
+            <StatCard icon={GraduationCap} label="Submissions" value={loading ? '—' : (assess.totalResults || 0).toString()} />
+            <StatCard icon={Users} label="Total Users" value={loading ? '—' : (users.total || 0).toString()} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -66,6 +67,29 @@ export default function AdminReports() {
               </div>
             </div>
           </div>
+
+          {/* User Role Breakdown Chart */}
+          {(users.students || users.teachers) && (
+            <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-6">
+              <h3 className="font-semibold font-heading mb-4">User Breakdown</h3>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Students', count: users.students || 0 },
+                    { name: 'Teachers', count: users.teachers || 0 },
+                    { name: 'HODs', count: users.hods || 0 },
+                    { name: 'Other', count: (users.total || 0) - (users.students || 0) - (users.teachers || 0) - (users.hods || 0) },
+                  ].filter(d => d.count > 0)}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#8b8fa3', fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fill: '#8b8fa3', fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{ background: '#1e2030', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                    <Bar dataKey="count" name="Users" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -1,10 +1,19 @@
+import { useState } from 'react'
 import { Users } from 'lucide-react'
 import Badge from '../../../components/ui/Badge'
-import DataTable from '../../../components/ui/DataTable'
-import useAPI from '../../../hooks/useAPI'
+import PaginatedDataPage from '../../../components/ui/PaginatedDataPage'
+import { usePaginatedAPI } from '../../../hooks/useAPI'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 
 export default function CollegeDeanStaff() {
-  const { data: staff } = useAPI('/dean/staff', { fallback: [] })
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  const { items, loading, loadingMore, hasMore, total, loadMore } = usePaginatedAPI(
+    '/dean/staff',
+    { params: { search: debouncedSearch }, pageSize: 20, staleTime: 60_000 }
+  )
+
   const columns = [
     { header: 'Name', accessor: 'name', cell: (row) => (
       <div className="flex items-center gap-3">
@@ -20,13 +29,23 @@ export default function CollegeDeanStaff() {
     { header: 'Role', accessor: 'role', cell: (row) => <Badge variant="violet" size="sm">{row.role.replace(/_/g, ' ')}</Badge> },
     { header: 'Department', cell: (row) => row.department?.name || '—' },
   ]
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold font-heading">Staff</h1>
-        <p className="text-sm text-dark-200 mt-1.5">HODs and teachers in your departments.</p>
-      </div>
-      <DataTable columns={columns} data={staff} searchPlaceholder="Search staff..." />
-    </div>
+    <PaginatedDataPage
+      title="Staff"
+      subtitle="HODs and teachers in your departments."
+      columns={columns}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      total={total}
+      onLoadMore={loadMore}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search staff..."
+      emptyIcon={Users}
+      emptyTitle="No staff found"
+    />
   )
 }

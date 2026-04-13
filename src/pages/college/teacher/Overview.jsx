@@ -1,5 +1,5 @@
-import { BookOpen, Users, ClipboardCheck, FileText, Building2, Eye } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { BookOpen, Users, ClipboardCheck, FileText, Building2, Eye, ArrowRight } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
 import StatCard from '../../../components/ui/StatCard'
 import { useAuth } from '../../../context/AuthContext'
 import useAPI from '../../../hooks/useAPI'
@@ -42,20 +42,24 @@ export default function CollegeTeacherOverview() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {ownDeptSubjects.map((s) => (
-              <div key={s.assignmentId} className="p-4 rounded-xl bg-dark-800/40 border border-brand-500/15 card-hover">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-brand-500/12 flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-brand-400" />
+              <Link key={s.assignmentId} to="/dashboard/college/teacher/dept-view"
+                className="p-4 rounded-xl bg-dark-800/40 border border-brand-500/15 hover:border-brand-500/30 hover:bg-dark-700/60 transition-all group">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-brand-500/12 flex items-center justify-center group-hover:bg-brand-500/20 transition-colors">
+                      <BookOpen className="w-5 h-5 text-brand-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-dark-50 text-sm group-hover:text-brand-300 transition-colors">{s.subjectName}</p>
+                      <p className="text-xs text-dark-400 flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3" />
+                        {s.departmentName} <span className="text-brand-400 text-[10px] ml-1">OWN DEPT</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-dark-50 text-sm">{s.subjectName}</p>
-                    <p className="text-xs text-dark-400 flex items-center gap-1 mt-0.5">
-                      <Building2 className="w-3 h-3" />
-                      {s.departmentName} <span className="text-brand-400 text-[10px] ml-1">OWN DEPT</span>
-                    </p>
-                  </div>
+                  <ArrowRight className="w-4 h-4 text-dark-500 group-hover:text-brand-400 group-hover:translate-x-0.5 transition-all shrink-0" />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

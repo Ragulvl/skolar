@@ -96,14 +96,14 @@ function CreateForm({ subjects, onClose }) {
         <div>
           <label className="block text-xs text-dark-400 font-medium mb-1.5">Type</label>
           <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm appearance-none">
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm appearance-none select-styled">
             <option value="mcq">MCQ</option><option value="descriptive">Descriptive</option>
           </select>
         </div>
         <div>
           <label className="block text-xs text-dark-400 font-medium mb-1.5">Subject * (from managed depts)</label>
           <select value={form.subjectId} onChange={e => setForm(p => ({ ...p, subjectId: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm appearance-none">
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm appearance-none select-styled">
             <option value="">Select subject...</option>
             {Object.entries(deptMap).map(([dept, subs]) => (
               <optgroup key={dept} label={dept}>
@@ -134,7 +134,7 @@ function CreateForm({ subjects, onClose }) {
                 {q.options.map((o, oi) => <input key={oi} value={o} onChange={e => updateOpt(qi, oi, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + oi)}`}
                   className="w-full px-3 py-2 rounded-lg bg-dark-700/40 border border-dark-500/15 text-dark-100 text-sm" />)}
               </div>
-              <select value={q.answer} onChange={e => updateQ(qi, 'answer', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-dark-700/40 border border-dark-500/15 text-dark-100 text-sm appearance-none">
+              <select value={q.answer} onChange={e => updateQ(qi, 'answer', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-dark-700/40 border border-dark-500/15 text-dark-100 text-sm appearance-none select-styled">
                 <option value="">Correct answer...</option>
                 {q.options.map((o, oi) => o.trim() && <option key={oi} value={o}>{String.fromCharCode(65 + oi)}. {o}</option>)}
               </select>

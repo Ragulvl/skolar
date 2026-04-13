@@ -30,7 +30,7 @@ export default function Landing() {
     { icon: Shield, title: 'Role Management', desc: 'Hierarchical roles from Super Admin to Student with auto-detection via institution codes.' },
     { icon: ClipboardCheck, title: 'Smart Attendance', desc: 'Mark attendance in seconds with bulk actions, heatmap views, and automated reporting.' },
     { icon: Brain, title: 'Auto Assessments', desc: 'Create MCQ & descriptive assessments with instant grading and performance analytics.' },
-    { icon: FileText, title: 'PDF Certificates', desc: 'Generate and download beautiful certificates with one click for any student.' },
+    { icon: FileText, title: 'Report Cards', desc: 'Generate grade reports and performance summaries for any student with one click.' },
     { icon: BarChart3, title: 'Real-time Analytics', desc: 'Dashboard insights with charts for attendance, grades, growth, and institution health.' },
     { icon: Building2, title: 'Multi-Institution', desc: 'Manage unlimited schools and colleges from a single platform with isolated data.' },
   ]
@@ -44,7 +44,7 @@ export default function Landing() {
   const testimonials = [
     { name: 'Dr. Priya Sharma', role: 'Principal, DPS Bengaluru', quote: 'Skolar transformed how we manage our school. The attendance system alone saves us 2 hours daily.', rating: 5 },
     { name: 'Rajesh Kumar', role: 'HOD CS, VIT University', quote: 'Finally an LMS that understands Indian institutions. The college hierarchy support is unmatched.', rating: 5 },
-    { name: 'Ananya Reddy', role: 'Teacher, Kendriya Vidyalaya', quote: 'Creating assessments and issuing certificates is so seamless. My students love the dashboard too!', rating: 5 },
+    { name: 'Ananya Reddy', role: 'Teacher, Kendriya Vidyalaya', quote: 'Creating assessments and tracking performance is so seamless. My students love the dashboard too!', rating: 5 },
   ]
 
   return (
@@ -244,7 +244,7 @@ export default function Landing() {
               Everything you need to <span className="gradient-text">run an institution</span>
             </h2>
             <p className="mt-4 text-dark-200 leading-relaxed">
-              From role management to certificate generation — Skolar handles it all with a beautiful, intuitive interface.
+              From role management to real-time analytics — Skolar handles it all with a beautiful, intuitive interface.
             </p>
           </div>
 

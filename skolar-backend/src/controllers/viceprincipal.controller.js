@@ -121,10 +121,12 @@ export async function getVPDepartments(req, res) {
   }
 }
 
-// GET /viceprincipal/teachers
+// GET /viceprincipal/teachers — cursor-paginated
 export async function getVPTeachers(req, res) {
   try {
     const instType = req.user.institution?.type
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
     let where = { role: 'teacher', institutionId: req.user.institutionId }
 
     if (instType === 'school') {
@@ -143,21 +145,44 @@ export async function getVPTeachers(req, res) {
       if (deptIds.length > 0) where.departmentId = { in: deptIds }
     }
 
-    const teachers = await prisma.user.findMany({
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
       where,
       select: { id: true, name: true, email: true, department: { select: { name: true } } },
       orderBy: { name: 'asc' },
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
     })
-    res.json({ success: true, data: teachers })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch teachers' })
   }
 }
 
-// GET /viceprincipal/students
+// GET /viceprincipal/students — cursor-paginated
 export async function getVPStudents(req, res) {
   try {
     const instType = req.user.institution?.type
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
     let where = { role: 'student', institutionId: req.user.institutionId }
 
     if (instType === 'school') {
@@ -174,7 +199,14 @@ export async function getVPStudents(req, res) {
       if (deptIds.length > 0) where.departmentId = { in: deptIds }
     }
 
-    const students = await prisma.user.findMany({
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
       where,
       select: {
         id: true, name: true, email: true,
@@ -183,8 +215,22 @@ export async function getVPStudents(req, res) {
         department: { select: { name: true } },
       },
       orderBy: { name: 'asc' },
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
     })
-    res.json({ success: true, data: students })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch students' })
   }

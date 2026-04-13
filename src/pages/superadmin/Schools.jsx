@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { School, Plus, MapPin, Loader2, Trash2, ExternalLink } from 'lucide-react'
+import { School, Plus, MapPin, Loader2, Trash2, ExternalLink, Search } from 'lucide-react'
 import DataTable from '../../components/ui/DataTable'
 import Modal from '../../components/ui/Modal'
 import FormInput from '../../components/ui/FormInput'
 import ToggleSwitch from '../../components/ui/ToggleSwitch'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { usePaginatedAPI, invalidateCache } from '../../hooks/useAPI'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import api from '../../api/client'
 
 const PAGE_SIZE = 20
@@ -16,38 +18,20 @@ export default function SuperAdminSchools() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [newInst, setNewInst] = useState({ name: '', city: '' })
-  const [schools, setSchools] = useState([])
   const [creating, setCreating] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
-  const [total, setTotal] = useState(0)
-  const cursorRef = useRef(null)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const sentinelRef = useRef(null)
 
-  const fetchSchools = useCallback(async (cursor = null) => {
-    const isInitial = !cursor
-    if (isInitial) setLoading(true)
-    else setLoadingMore(true)
-
-    try {
-      const params = new URLSearchParams({ type: 'school', limit: PAGE_SIZE })
-      if (cursor) params.set('cursor', cursor)
-      const res = await api.get(`/superadmin/institutions?${params}`)
-      const { data, pagination } = res.data
-
-      setSchools(prev => isInitial ? data : [...prev, ...data])
-      setHasMore(pagination.hasMore)
-      setTotal(pagination.total)
-      cursorRef.current = pagination.nextCursor
-    } catch {}
-    finally {
-      if (isInitial) setLoading(false)
-      else setLoadingMore(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchSchools() }, [fetchSchools])
+  // ─── Cached paginated data fetching with server-side search ─────────────
+  const {
+    items: schools, loading, loadingMore, hasMore, total,
+    loadMore, reset, setItems
+  } = usePaginatedAPI('/superadmin/institutions', {
+    params: { type: 'school', search: debouncedSearch },
+    pageSize: PAGE_SIZE,
+    staleTime: 120_000,
+  })
 
   // Infinite scroll observer
   useEffect(() => {
@@ -55,14 +39,14 @@ export default function SuperAdminSchools() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && hasMore && !loadingMore) {
-          fetchSchools(cursorRef.current)
+          loadMore()
         }
       },
       { rootMargin: '200px' }
     )
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [hasMore, loadingMore, fetchSchools])
+  }, [hasMore, loadingMore, loadMore])
 
   const handleCreate = async () => {
     if (!newInst.name) return
@@ -71,8 +55,8 @@ export default function SuperAdminSchools() {
       await api.post('/superadmin/institutions', { ...newInst, type: 'school' })
       setShowModal(false)
       setNewInst({ name: '', city: '' })
-      cursorRef.current = null
-      fetchSchools()
+      invalidateCache('/superadmin')
+      reset()
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to create school')
     } finally {
@@ -83,7 +67,7 @@ export default function SuperAdminSchools() {
   const handleToggle = async (id, isActive) => {
     try {
       await api.patch(`/superadmin/institutions/${id}`, { isActive: !isActive })
-      setSchools(prev => prev.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s))
+      setItems(prev => prev.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s))
     } catch {}
   }
 
@@ -92,8 +76,8 @@ export default function SuperAdminSchools() {
     setDeleting(true)
     try {
       await api.delete(`/superadmin/institutions/${deleteTarget.id}`)
-      setSchools(prev => prev.filter(s => s.id !== deleteTarget.id))
-      setTotal(prev => prev - 1)
+      setItems(prev => prev.filter(s => s.id !== deleteTarget.id))
+      invalidateCache('/superadmin')
       setDeleteTarget(null)
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to delete school')
@@ -150,6 +134,16 @@ export default function SuperAdminSchools() {
         </button>
       </div>
 
+      {/* Server-side search */}
+      <div className="relative max-w-sm">
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-dark-400 pointer-events-none" />
+        <input type="text" placeholder="Search schools..."
+          value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 h-10 rounded-xl bg-dark-700/60 border border-dark-500/25
+            text-sm text-dark-50 placeholder:text-dark-400 focus:outline-none focus:border-brand-500/50
+            focus:ring-1 focus:ring-brand-500/20 transition-all" />
+      </div>
+
       {loading ? (
         <div className="space-y-3">
           {[1,2,3,4,5].map(i => (
@@ -158,7 +152,7 @@ export default function SuperAdminSchools() {
         </div>
       ) : (
         <>
-          <DataTable columns={columns} data={schools} searchPlaceholder="Search schools..." />
+          <DataTable columns={columns} data={schools} searchable={false} />
 
           {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="h-1" />

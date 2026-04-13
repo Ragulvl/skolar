@@ -61,7 +61,7 @@ const SchoolTeacherAttendance = lazy(() => import('./pages/school/teacher/MarkAt
 const SchoolTeacherAssessments = lazy(() => import('./pages/school/teacher/Assessments'))
 const SchoolTeacherStudents = lazy(() => import('./pages/school/teacher/MyStudents'))
 const SchoolTeacherResults = lazy(() => import('./pages/school/teacher/Results'))
-const SchoolTeacherCertificates = lazy(() => import('./pages/school/teacher/Certificates'))
+const SchoolTeacherClassDetail = lazy(() => import('./pages/school/teacher/ClassDetail'))
 
 // School Student
 const SchoolStudentOverview = lazy(() => import('./pages/school/student/Overview'))
@@ -69,7 +69,6 @@ const SchoolStudentSubjects = lazy(() => import('./pages/school/student/MySubjec
 const SchoolStudentAttendance = lazy(() => import('./pages/school/student/Attendance'))
 const SchoolStudentAssessments = lazy(() => import('./pages/school/student/Assessments'))
 const SchoolStudentGrades = lazy(() => import('./pages/school/student/Grades'))
-const SchoolStudentCertificates = lazy(() => import('./pages/school/student/Certificates'))
 
 // College Chairman
 const CollegeChairmanOverview = lazy(() => import('./pages/college/chairman/Overview'))
@@ -81,6 +80,9 @@ const CollegeChairmanStaff = lazy(() => import('./pages/college/chairman/Staff')
 const CollegeChairmanStudents = lazy(() => import('./pages/college/chairman/Students'))
 const CollegeChairmanAnalytics = lazy(() => import('./pages/college/chairman/Analytics'))
 const CollegeChairmanPending = lazy(() => import('./pages/college/chairman/Pending'))
+const CollegeChairmanAttendance = lazy(() => import('./pages/college/chairman/Attendance'))
+const CollegeChairmanAssessments = lazy(() => import('./pages/college/chairman/Assessments'))
+const CollegeChairmanReports = lazy(() => import('./pages/college/chairman/Reports'))
 
 // College Vice Chairman
 const CollegeViceChairmanOverview = lazy(() => import('./pages/college/vicechairman/Overview'))
@@ -92,6 +94,9 @@ const CollegeViceChairmanStaff = lazy(() => import('./pages/college/vicechairman
 const CollegeViceChairmanStudents = lazy(() => import('./pages/college/vicechairman/Students'))
 const CollegeViceChairmanAnalytics = lazy(() => import('./pages/college/vicechairman/Analytics'))
 const CollegeViceChairmanPending = lazy(() => import('./pages/college/vicechairman/Pending'))
+const CollegeViceChairmanAttendance = lazy(() => import('./pages/college/vicechairman/Attendance'))
+const CollegeViceChairmanAssessments = lazy(() => import('./pages/college/vicechairman/Assessments'))
+const CollegeViceChairmanReports = lazy(() => import('./pages/college/vicechairman/Reports'))
 
 // College Principal
 const CollegePrincipalOverview = lazy(() => import('./pages/college/principal/Overview'))
@@ -103,6 +108,9 @@ const CollegePrincipalStaff = lazy(() => import('./pages/college/principal/Staff
 const CollegePrincipalStudents = lazy(() => import('./pages/college/principal/Students'))
 const CollegePrincipalAnalytics = lazy(() => import('./pages/college/principal/Analytics'))
 const CollegePrincipalPending = lazy(() => import('./pages/college/principal/Pending'))
+const CollegePrincipalAttendance = lazy(() => import('./pages/college/principal/Attendance'))
+const CollegePrincipalAssessments = lazy(() => import('./pages/college/principal/Assessments'))
+const CollegePrincipalReports = lazy(() => import('./pages/college/principal/Reports'))
 
 // College Vice Principal
 const CollegeVPOverview = lazy(() => import('./pages/college/viceprincipal/Overview'))
@@ -113,7 +121,10 @@ const CollegeVPStudentProfile = lazy(() => import('./pages/college/viceprincipal
 const CollegeVPStaff = lazy(() => import('./pages/college/viceprincipal/Staff'))
 const CollegeVPStudents = lazy(() => import('./pages/college/viceprincipal/Students'))
 const CollegeVPAttendance = lazy(() => import('./pages/college/viceprincipal/Attendance'))
-const CollegeVPPending = lazy(() => import('./pages/college/viceprincipal/Reports'))
+const CollegeVPPending = lazy(() => import('./pages/college/viceprincipal/Pending'))
+const CollegeVPAnalytics = lazy(() => import('./pages/college/viceprincipal/Analytics'))
+const CollegeVPAssessments = lazy(() => import('./pages/college/viceprincipal/Assessments'))
+const CollegeVPReports = lazy(() => import('./pages/college/viceprincipal/Reports'))
 
 // College Dean
 const CollegeDeanOverview = lazy(() => import('./pages/college/dean/Overview'))
@@ -140,7 +151,6 @@ const CollegeTeacherAttendance = lazy(() => import('./pages/college/teacher/Mark
 const CollegeTeacherAssessments = lazy(() => import('./pages/college/teacher/Assessments'))
 const CollegeTeacherStudents = lazy(() => import('./pages/college/teacher/MyStudents'))
 const CollegeTeacherResults = lazy(() => import('./pages/college/teacher/Results'))
-const CollegeTeacherCertificates = lazy(() => import('./pages/college/teacher/Certificates'))
 const CollegeTeacherDeptView = lazy(() => import('./pages/college/teacher/DeptView'))
 const CollegeTeacherSubjectView = lazy(() => import('./pages/college/teacher/SubjectView'))
 
@@ -150,7 +160,6 @@ const CollegeStudentSubjects = lazy(() => import('./pages/college/student/MySubj
 const CollegeStudentAttendance = lazy(() => import('./pages/college/student/Attendance'))
 const CollegeStudentAssessments = lazy(() => import('./pages/college/student/Assessments'))
 const CollegeStudentGrades = lazy(() => import('./pages/college/student/Grades'))
-const CollegeStudentCertificates = lazy(() => import('./pages/college/student/Certificates'))
 
 // Shimmer fallback for lazy-loaded pages
 function PageLoader() {
@@ -249,11 +258,11 @@ export default function App() {
       }>
         <Route index element={<SchoolTeacherOverview />} />
         <Route path="classes" element={<SchoolTeacherClasses />} />
+        <Route path="classes/:assignmentId" element={<SchoolTeacherClassDetail />} />
         <Route path="attendance" element={<SchoolTeacherAttendance />} />
         <Route path="assessments" element={<SchoolTeacherAssessments />} />
         <Route path="students" element={<SchoolTeacherStudents />} />
         <Route path="results" element={<SchoolTeacherResults />} />
-        <Route path="certificates" element={<SchoolTeacherCertificates />} />
       </Route>
 
       {/* ─── School Student ─── */}
@@ -267,7 +276,6 @@ export default function App() {
         <Route path="attendance" element={<SchoolStudentAttendance />} />
         <Route path="assessments" element={<SchoolStudentAssessments />} />
         <Route path="grades" element={<SchoolStudentGrades />} />
-        <Route path="certificates" element={<SchoolStudentCertificates />} />
       </Route>
 
       {/* ─── College Chairman ─── */}
@@ -285,6 +293,9 @@ export default function App() {
         <Route path="students" element={<CollegeChairmanStudents />} />
         <Route path="analytics" element={<CollegeChairmanAnalytics />} />
         <Route path="pending" element={<CollegeChairmanPending />} />
+        <Route path="attendance" element={<CollegeChairmanAttendance />} />
+        <Route path="assessments" element={<CollegeChairmanAssessments />} />
+        <Route path="reports" element={<CollegeChairmanReports />} />
       </Route>
 
       {/* ─── College Vice Chairman ─── */}
@@ -302,6 +313,9 @@ export default function App() {
         <Route path="students" element={<CollegeViceChairmanStudents />} />
         <Route path="analytics" element={<CollegeViceChairmanAnalytics />} />
         <Route path="pending" element={<CollegeViceChairmanPending />} />
+        <Route path="attendance" element={<CollegeViceChairmanAttendance />} />
+        <Route path="assessments" element={<CollegeViceChairmanAssessments />} />
+        <Route path="reports" element={<CollegeViceChairmanReports />} />
       </Route>
 
       {/* ─── College Principal ─── */}
@@ -319,6 +333,9 @@ export default function App() {
         <Route path="students" element={<CollegePrincipalStudents />} />
         <Route path="analytics" element={<CollegePrincipalAnalytics />} />
         <Route path="pending" element={<CollegePrincipalPending />} />
+        <Route path="attendance" element={<CollegePrincipalAttendance />} />
+        <Route path="assessments" element={<CollegePrincipalAssessments />} />
+        <Route path="reports" element={<CollegePrincipalReports />} />
       </Route>
 
       {/* ─── College Vice Principal ─── */}
@@ -336,6 +353,9 @@ export default function App() {
         <Route path="students" element={<CollegeVPStudents />} />
         <Route path="attendance" element={<CollegeVPAttendance />} />
         <Route path="pending" element={<CollegeVPPending />} />
+        <Route path="analytics" element={<CollegeVPAnalytics />} />
+        <Route path="assessments" element={<CollegeVPAssessments />} />
+        <Route path="reports" element={<CollegeVPReports />} />
       </Route>
 
       {/* ─── College Dean ─── */}
@@ -380,7 +400,6 @@ export default function App() {
         <Route path="assessments" element={<CollegeTeacherAssessments />} />
         <Route path="students" element={<CollegeTeacherStudents />} />
         <Route path="results" element={<CollegeTeacherResults />} />
-        <Route path="certificates" element={<CollegeTeacherCertificates />} />
         <Route path="dept-view" element={<CollegeTeacherDeptView />} />
         <Route path="subject/:subjectId" element={<CollegeTeacherSubjectView />} />
       </Route>
@@ -396,7 +415,6 @@ export default function App() {
         <Route path="attendance" element={<CollegeStudentAttendance />} />
         <Route path="assessments" element={<CollegeStudentAssessments />} />
         <Route path="grades" element={<CollegeStudentGrades />} />
-        <Route path="certificates" element={<CollegeStudentCertificates />} />
       </Route>
 
       {/* Catch all */}

@@ -4,35 +4,38 @@ import Badge from '../../../components/ui/Badge'
 import Modal from '../../../components/ui/Modal'
 import FormInput from '../../../components/ui/FormInput'
 import { useAuth } from '../../../context/AuthContext'
+import useAPI, { invalidateCache } from '../../../hooks/useAPI'
 import api from '../../../api/client'
 
 export default function SchoolPrincipalSubjects() {
   const { user } = useAuth()
   const [showModal, setShowModal] = useState(false)
   const [subjects, setSubjects] = useState({})
-  const [grades, setGrades] = useState([])
   const [newSubject, setNewSubject] = useState({ name: '', gradeId: '' })
   const [creating, setCreating] = useState(false)
 
   const institutionId = user?.institutionId
 
+  // ─── Cached grade data fetching ───────────────────────────────────────
+  const { data: grades } = useAPI(
+    institutionId ? `/school/grades/${institutionId}` : null,
+    { staleTime: 300_000, fallback: [] }
+  )
+
+  // Fetch subjects per grade when grades are loaded
+  // This is derived data, so we re-fetch when grades change
   useEffect(() => {
-    if (!institutionId) return
-    api.get(`/school/grades/${institutionId}`).then(res => {
-      const gradeList = res.data.data || []
-      setGrades(gradeList)
-      // Fetch subjects for each grade
-      Promise.all(gradeList.map(g =>
-        api.get(`/school/subjects/${g.id}`).then(r => ({ grade: g.name, gradeId: g.id, subjects: r.data.data || [] }))
-      )).then(results => {
-        const grouped = {}
-        results.forEach(r => {
-          if (r.subjects.length > 0) grouped[r.grade] = r.subjects
-        })
-        setSubjects(grouped)
+    if (!grades || grades.length === 0) return
+    Promise.all(grades.map(g =>
+      api.get(`/school/subjects/${g.id}`).then(r => ({ grade: g.name, gradeId: g.id, subjects: r.data.data || [] }))
+    )).then(results => {
+      const grouped = {}
+      results.forEach(r => {
+        if (r.subjects.length > 0) grouped[r.grade] = r.subjects
       })
+      setSubjects(grouped)
     }).catch(() => {})
-  }, [institutionId])
+  }, [grades])
 
   const handleCreate = async () => {
     if (!newSubject.name || !newSubject.gradeId) return
@@ -41,12 +44,13 @@ export default function SchoolPrincipalSubjects() {
       await api.post('/school/subjects', { name: newSubject.name, gradeId: newSubject.gradeId, institutionId })
       setShowModal(false)
       setNewSubject({ name: '', gradeId: '' })
-      // Refetch
+      // Refetch subjects for the affected grade
       const r = await api.get(`/school/subjects/${newSubject.gradeId}`)
       const grade = grades.find(g => g.id === newSubject.gradeId)
       if (grade) {
         setSubjects(prev => ({ ...prev, [grade.name]: r.data.data || [] }))
       }
+      invalidateCache('/school')
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to create subject')
     } finally {

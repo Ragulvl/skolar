@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard, Building2, Users, BarChart3, BookOpen,
-  GraduationCap, ClipboardList, Award, Calendar,
+  GraduationCap, ClipboardList, Calendar,
   FileText, ChevronLeft, LogOut,
   School, Layers, UserCog, PanelLeft, UserCheck, Settings, Shield
 } from 'lucide-react'
@@ -58,7 +58,10 @@ const sidebarConfig = {
         { to: '/departments', icon: Building2, label: 'Departments' },
         { to: '/staff', icon: UserCog, label: 'Staff' },
         { to: '/students', icon: GraduationCap, label: 'Students' },
+        { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+        { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+        { to: '/reports', icon: BarChart3, label: 'Reports' },
         { to: '/pending', icon: UserCheck, label: 'Approvals' },
       ]
     }
@@ -85,6 +88,9 @@ const sidebarConfig = {
         { to: '/staff', icon: UserCog, label: 'Staff' },
         { to: '/students', icon: GraduationCap, label: 'Students' },
         { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+        { to: '/assessments', icon: FileText, label: 'Assessments' },
+        { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+        { to: '/reports', icon: BarChart3, label: 'Reports' },
         { to: '/pending', icon: UserCheck, label: 'Approvals' },
       ]
     }
@@ -97,7 +103,10 @@ const sidebarConfig = {
       { to: '/departments', icon: Building2, label: 'Departments' },
       { to: '/staff', icon: UserCog, label: 'Staff' },
       { to: '/students', icon: GraduationCap, label: 'Students' },
+      { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+      { to: '/assessments', icon: FileText, label: 'Assessments' },
       { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/reports', icon: BarChart3, label: 'Reports' },
       { to: '/pending', icon: UserCheck, label: 'Approvals' },
     ]
   },
@@ -109,7 +118,10 @@ const sidebarConfig = {
       { to: '/departments', icon: Building2, label: 'Departments' },
       { to: '/staff', icon: UserCog, label: 'Staff' },
       { to: '/students', icon: GraduationCap, label: 'Students' },
+      { to: '/attendance', icon: ClipboardList, label: 'Attendance' },
+      { to: '/assessments', icon: FileText, label: 'Assessments' },
       { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/reports', icon: BarChart3, label: 'Reports' },
       { to: '/pending', icon: UserCheck, label: 'Approvals' },
     ]
   },
@@ -150,7 +162,6 @@ const sidebarConfig = {
         { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/students', icon: GraduationCap, label: 'My Students' },
         { to: '/results', icon: BarChart3, label: 'Results' },
-        { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     },
     college: {
@@ -163,7 +174,6 @@ const sidebarConfig = {
         { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/students', icon: GraduationCap, label: 'My Students' },
         { to: '/results', icon: BarChart3, label: 'Results' },
-        { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     }
   },
@@ -177,7 +187,6 @@ const sidebarConfig = {
         { to: '/attendance', icon: Calendar, label: 'Attendance' },
         { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/grades', icon: BarChart3, label: 'Grades' },
-        { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     },
     college: {
@@ -189,7 +198,6 @@ const sidebarConfig = {
         { to: '/attendance', icon: Calendar, label: 'Attendance' },
         { to: '/assessments', icon: FileText, label: 'Assessments' },
         { to: '/grades', icon: BarChart3, label: 'Grades' },
-        { to: '/certificates', icon: Award, label: 'Certificates' },
       ]
     }
   }

@@ -1,6 +1,8 @@
-import { Users, UserCog } from 'lucide-react'
-import DataTable from '../../../components/ui/DataTable'
-import useAPI from '../../../hooks/useAPI'
+import { useState } from 'react'
+import { Users } from 'lucide-react'
+import PaginatedDataPage from '../../../components/ui/PaginatedDataPage'
+import { usePaginatedAPI } from '../../../hooks/useAPI'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 
 const ROLE_LABELS = {
   principal: 'Principal', vice_principal: 'Vice Principal',
@@ -8,7 +10,13 @@ const ROLE_LABELS = {
 }
 
 export default function StaffPage() {
-  const { data: staff, loading } = useAPI('/college-admin/staff', { fallback: [] })
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  const { items, loading, loadingMore, hasMore, total, loadMore } = usePaginatedAPI(
+    '/college-admin/staff',
+    { params: { search: debouncedSearch }, pageSize: 20, staleTime: 60_000 }
+  )
 
   const columns = [
     { header: 'Name', accessor: 'name', cell: (row) => (
@@ -43,12 +51,21 @@ export default function StaffPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold font-heading">All Staff</h1>
-        <p className="text-sm text-dark-200 mt-1.5">Staff across all departments and roles.</p>
-      </div>
-      <DataTable columns={columns} data={staff || []} searchPlaceholder="Search staff..." />
-    </div>
+    <PaginatedDataPage
+      title="All Staff"
+      subtitle="Staff across all departments and roles."
+      columns={columns}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      total={total}
+      onLoadMore={loadMore}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search staff..."
+      emptyIcon={Users}
+      emptyTitle="No staff found"
+    />
   )
 }

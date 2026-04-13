@@ -139,7 +139,7 @@ export default function CollegeHODSubjects() {
         <div className="space-y-3">
           <p className="text-sm text-dark-300">Select a teacher to assign to <strong className="text-dark-100">{assignSubject?.name}</strong>:</p>
           <select value={selectedTeacher} onChange={(e) => setSelectedTeacher(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-500/40 text-sm text-dark-50 focus:outline-none focus:border-brand-500">
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-800 border border-dark-500/40 text-sm text-dark-50 focus:outline-none focus:border-brand-500 appearance-none select-styled">
             <option value="">Select a teacher...</option>
             {(availableTeachers || []).map(t => (
               <option key={t.id} value={t.id}>{t.name} ({t.email})</option>

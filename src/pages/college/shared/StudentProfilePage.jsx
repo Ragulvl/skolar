@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { ClipboardCheck, FileText, Award, TrendingUp, BookOpen } from 'lucide-react'
+import { ClipboardCheck, FileText, TrendingUp, BookOpen } from 'lucide-react'
 import StatCard from '../../../components/ui/StatCard'
 import Breadcrumb from '../../../components/ui/Breadcrumb'
 import useAPI from '../../../hooks/useAPI'
@@ -14,7 +14,6 @@ export default function StudentProfilePage({ basePath }) {
   const stats = data?.overallStats || {}
   const attendanceBySubject = data?.attendanceBySubject || []
   const assessmentResults = data?.assessmentResults || []
-  const certificates = data?.certificates || []
 
   return (
     <div className="space-y-6">
@@ -42,7 +41,6 @@ export default function StudentProfilePage({ basePath }) {
         <StatCard icon={ClipboardCheck} label="Attendance" value={loading ? '—' : `${stats.attendancePercentage || 0}%`} />
         <StatCard icon={FileText} label="Assessments" value={loading ? '—' : (stats.totalAssessments || 0).toString()} />
         <StatCard icon={TrendingUp} label="Avg Score" value={loading ? '—' : stats.avgScore?.toString() || '0'} />
-        <StatCard icon={Award} label="Certificates" value={loading ? '—' : (stats.certificateCount || 0).toString()} />
       </div>
 
       {/* Attendance per subject (bar chart) */}
@@ -109,28 +107,6 @@ export default function StudentProfilePage({ basePath }) {
         </div>
       )}
 
-      {/* Certificates */}
-      {certificates.length > 0 && (
-        <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-6">
-          <h3 className="font-semibold font-heading mb-4">Certificates Earned</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {certificates.map(c => (
-              <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl bg-dark-800/30 border border-amber-500/15">
-                <div className="w-9 h-9 rounded-lg bg-amber-500/12 flex items-center justify-center">
-                  <Award className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-dark-100">{c.title}</p>
-                  <p className="text-xs text-dark-400">{c.subject.name} · by {c.issuer.name}</p>
-                  <p className="text-xs text-dark-500">
-                    {new Date(c.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Empty state */}
       {!loading && attendanceBySubject.length === 0 && assessmentResults.length === 0 && (

@@ -1,30 +1,50 @@
 import { useState, useEffect } from 'react'
-import { Check, X, CheckCheck, Calendar } from 'lucide-react'
-import Badge from '../../../components/ui/Badge'
-import FormInput from '../../../components/ui/FormInput'
+import { ClipboardCheck, Check, X, Clock, Users, Loader2, CheckCircle2 } from 'lucide-react'
+import useAPI, { invalidateCache } from '../../../hooks/useAPI'
+import api from '../../../api/client'
+
+function formatDate(d) { return new Date(d).toISOString().split('T')[0] }
+
+const STATUS_CFG = {
+  present: { label: 'P', active: 'bg-success text-white border-success', idle: 'bg-success/15 text-success border-success/30' },
+  absent: { label: 'A', active: 'bg-danger text-white border-danger', idle: 'bg-danger/15 text-danger border-danger/30' },
+  late: { label: 'L', active: 'bg-amber-500 text-white border-amber-500', idle: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+}
 
 export default function SchoolTeacherAttendance() {
-  const [students, setStudents] = useState([])
-  const [attendance, setAttendance] = useState({})
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [classes] = useState([]) // TODO: fetch assigned classes
+  const { data: assignData } = useAPI('/attendance/my-assignments', { fallback: {} })
+  const assignments = assignData?.assignments || []
+  const [selectedSubject, setSelectedSubject] = useState('')
+  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()))
+  const [statuses, setStatuses] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+
+  const { data: markData, loading: loadingStudents } = useAPI(
+    selectedSubject ? `/attendance/markable-students/${selectedSubject}?date=${selectedDate}` : null,
+    { fallback: {} }
+  )
+  const students = markData?.students || []
+  const existing = markData?.existing || []
 
   useEffect(() => {
-    // TODO: Fetch students for the selected class from API
-    // When students load, initialize attendance:
-    // setAttendance(Object.fromEntries(students.map(s => [s.id, 'present'])))
-  }, [])
+    if (existing.length > 0) {
+      const map = {}; existing.forEach(e => { map[e.studentId] = e.status }); setStatuses(map); setSubmitted(true)
+    } else { setStatuses({}); setSubmitted(false) }
+  }, [JSON.stringify(existing)])
 
-  const toggleAttendance = (id) => {
-    setAttendance(prev => ({ ...prev, [id]: prev[id] === 'present' ? 'absent' : 'present' }))
+  const markAll = () => { if (submitted) return; const m = {}; students.forEach(s => { m[s.id] = 'present' }); setStatuses(m) }
+  const markedCount = Object.keys(statuses).length
+  const allMarked = markedCount === students.length && students.length > 0
+
+  const handleSubmit = async () => {
+    if (!allMarked || submitting) return; setSubmitting(true)
+    try {
+      const records = students.map(s => ({ studentId: s.id, status: statuses[s.id] }))
+      const resp = await api.post('/attendance/mark', { subjectId: selectedSubject, date: selectedDate, records })
+      if (resp.data.success) { setSubmitted(true); invalidateCache('/attendance') }
+    } catch (err) { console.error(err) } finally { setSubmitting(false) }
   }
-
-  const markAllPresent = () => {
-    setAttendance(Object.fromEntries(students.map(s => [s.id, 'present'])))
-  }
-
-  const presentCount = Object.values(attendance).filter(v => v === 'present').length
-  const absentCount = Object.values(attendance).filter(v => v === 'absent').length
 
   return (
     <div className="space-y-6">
@@ -33,68 +53,76 @@ export default function SchoolTeacherAttendance() {
         <p className="text-sm text-dark-200 mt-1.5">Mark daily attendance for your class.</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-dark-700/60 border border-dark-500/25 rounded-2xl p-5">
-        <div className="flex items-center gap-4">
-          <FormInput type="select" onChange={() => {}}>
-            <option value="">Select Class</option>
-            {classes.map(c => (
-              <option key={c.id} value={c.id}>{c.subject} - Grade {c.grade} - {c.section}</option>
-            ))}
-          </FormInput>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-dark-400" />
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-dark-800/80 border border-dark-500/40 text-sm text-dark-50 focus:outline-none focus:border-brand-500/50" />
-          </div>
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex-1 min-w-[220px]">
+          <label className="block text-xs text-dark-400 font-medium mb-1.5">Subject / Class</label>
+          <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setStatuses({}); setSubmitted(false) }}
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-700/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none select-styled">
+            <option value="">Select a class...</option>
+            {assignments.map(a => <option key={a.subjectId} value={a.subjectId}>{a.subjectName}{a.sectionName ? ` — ${a.gradeName} ${a.sectionName}` : ''}</option>)}
+          </select>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="success" size="md">{presentCount} Present</Badge>
-          <Badge variant="danger" size="md">{absentCount} Absent</Badge>
-          <button onClick={markAllPresent}
-            className="px-3 py-2 rounded-lg bg-success/10 text-success text-sm font-medium hover:bg-success/20 transition-colors flex items-center gap-1.5">
-            <CheckCheck className="w-4 h-4" /> All Present
+        <div className="min-w-[180px]">
+          <label className="block text-xs text-dark-400 font-medium mb-1.5">Date</label>
+          <input type="date" value={selectedDate} max={formatDate(new Date())} onChange={e => { setSelectedDate(e.target.value); setStatuses({}); setSubmitted(false) }}
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-700/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50" />
+        </div>
+        {students.length > 0 && !submitted && (
+          <button onClick={markAll} className="px-4 py-2.5 rounded-xl bg-success/10 border border-success/25 text-success text-sm font-medium hover:bg-success/20 transition-all">
+            <Check className="w-4 h-4 inline mr-1.5 -mt-0.5" /> Mark All Present
           </button>
-        </div>
-      </div>
-
-      <div className="bg-dark-700/60 border border-dark-500/25 rounded-xl overflow-hidden">
-        {students.length > 0 ? (
-          students.map((student, i) => (
-            <div key={student.id}
-              className={`flex items-center justify-between px-5 py-3.5 ${i > 0 ? 'border-t border-dark-500/20' : ''} hover:bg-dark-600/20 transition-colors`}>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-dark-400 w-6 text-center font-mono">{student.rollNo || i + 1}</span>
-                <div className="w-8 h-8 rounded-full bg-brand-500/15 flex items-center justify-center text-xs font-bold text-brand-400">
-                  {student.name?.split(' ').map(n => n[0]).join('')}
-                </div>
-                <span className="text-sm font-medium text-dark-50">{student.name}</span>
-              </div>
-              <button onClick={() => toggleAttendance(student.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all
-                  ${attendance[student.id] === 'present'
-                    ? 'bg-success/15 text-success border border-success/20 hover:bg-success/25'
-                    : 'bg-danger/15 text-danger border border-danger/20 hover:bg-danger/25'
-                  }`}>
-                {attendance[student.id] === 'present' ? (
-                  <><Check className="w-4 h-4" /> Present</>
-                ) : (
-                  <><X className="w-4 h-4" /> Absent</>
-                )}
-              </button>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12 text-sm text-dark-400">Select a class to view students.</div>
         )}
       </div>
 
-      {students.length > 0 && (
-        <div className="flex justify-end">
-          <button className="px-6 py-3 rounded-xl gradient-brand text-white font-semibold hover:shadow-glow transition-all">
-            Submit Attendance
-          </button>
+      {selectedSubject && (loadingStudents ? (
+        <div className="text-center py-12"><Loader2 className="w-8 h-8 text-brand-400 mx-auto animate-spin" /></div>
+      ) : students.length > 0 ? (
+        <>
+          {submitted && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-success/20">
+              <CheckCircle2 className="w-5 h-5 text-success" /><p className="text-sm text-success">Attendance already marked.</p>
+            </div>
+          )}
+          <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-dark-500/15">
+              <div className="flex items-center gap-2.5"><Users className="w-5 h-5 text-brand-400" /><span className="font-semibold text-dark-100">{markData?.subjectName}</span></div>
+              <span className="text-xs text-dark-400">{markedCount}/{students.length} marked</span>
+            </div>
+            <div className="divide-y divide-dark-500/10">
+              {students.map((s, idx) => (
+                <div key={s.id} className={`flex items-center gap-4 px-6 py-3 ${idx % 2 === 0 ? 'bg-dark-800/20' : ''}`}>
+                  <span className="text-xs text-dark-500 w-6">{idx + 1}</span>
+                  <div className="w-8 h-8 rounded-full bg-brand-500/12 flex items-center justify-center text-xs font-bold text-brand-300 flex-shrink-0">
+                    {s.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="min-w-0 flex-1"><p className="text-sm font-medium text-dark-100">{s.name}</p></div>
+                  <div className="flex gap-2">
+                    {Object.entries(STATUS_CFG).map(([key, cfg]) => (
+                      <button key={key} onClick={() => !submitted && setStatuses(p => ({ ...p, [s.id]: key }))} disabled={submitted}
+                        className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all ${statuses[s.id] === key ? cfg.active : cfg.idle} ${submitted ? 'opacity-60 cursor-not-allowed' : 'hover:scale-105'}`}>
+                        {cfg.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {!submitted && (
+            <div className="flex justify-end">
+              <button onClick={handleSubmit} disabled={!allMarked || submitting}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-brand text-white font-semibold text-sm disabled:opacity-40 hover:shadow-lg hover:shadow-brand-500/20 transition-all">
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+                {submitting ? 'Submitting...' : `Submit (${markedCount}/${students.length})`}
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center py-12 bg-dark-700/60 border border-dark-500/25 rounded-2xl">
+          <Users className="w-10 h-10 text-dark-500 mx-auto mb-3" /><p className="text-sm text-dark-400">No students found.</p>
         </div>
-      )}
+      ))}
     </div>
   )
 }

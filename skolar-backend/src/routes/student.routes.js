@@ -3,7 +3,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 import { allowRoles } from '../middleware/role.middleware.js'
 import {
   getStudentDashboard, getStudentOwnAttendance, getStudentAssessments,
-  getStudentSubjects, getStudentCertificates, getStudentGrades,
+  getStudentSubjects, getStudentGrades,
 } from '../controllers/student.controller.js'
 
 const router = Router()
@@ -18,7 +18,6 @@ router.get('/dashboard', getStudentDashboard)
 router.get('/attendance', getStudentOwnAttendance)
 router.get('/assessments', getStudentAssessments)
 router.get('/subjects', getStudentSubjects)
-router.get('/certificates', getStudentCertificates)
 router.get('/grades', getStudentGrades)
 
 export default router

@@ -64,6 +64,7 @@ export async function getOverview(req, res) {
     const hdUsers = hodDeanIds.length > 0 ? await prisma.user.findMany({
       where: { id: { in: hodDeanIds } },
       select: { id: true, name: true },
+      take: 50,
     }) : []
     const hdMap = {}
     hdUsers.forEach(u => { hdMap[u.id] = u.name })
@@ -119,6 +120,7 @@ export async function getDepartments(req, res) {
     const users = hodDeanIds.length > 0 ? await prisma.user.findMany({
       where: { id: { in: hodDeanIds } },
       select: { id: true, name: true, email: true },
+      take: 50,
     }) : []
     const userMap = {}
     users.forEach(u => { userMap[u.id] = u })
@@ -167,11 +169,13 @@ export async function getDepartmentDetail(req, res) {
           },
         },
         orderBy: { name: 'asc' },
+        take: 20,
       }),
       prisma.user.findMany({
         where: { departmentId: deptId, role: 'student' },
         select: { id: true, name: true, email: true, avatarUrl: true },
         orderBy: { name: 'asc' },
+        take: 20,
       }),
       prisma.subject.findMany({
         where: { departmentId: deptId },
@@ -322,6 +326,7 @@ export async function getStudentProfile(req, res) {
     const attendanceRaw = await prisma.attendance.findMany({
       where: { studentId },
       include: { subject: { select: { id: true, name: true } } },
+      take: 100,
     })
     const subjectAttMap = {}
     attendanceRaw.forEach(a => {
@@ -344,17 +349,9 @@ export async function getStudentProfile(req, res) {
         },
       },
       orderBy: { submittedAt: 'desc' },
+      take: 100,
     })
 
-    // Certificates
-    const certificates = await prisma.certificate.findMany({
-      where: { studentId },
-      include: {
-        subject: { select: { name: true } },
-        issuer: { select: { name: true } },
-      },
-      orderBy: { issuedAt: 'desc' },
-    })
 
     // Overall stats
     const totalAtt = attendanceRaw.length
@@ -371,11 +368,9 @@ export async function getStudentProfile(req, res) {
           attendancePercentage: totalAtt > 0 ? ((totalPresent / totalAtt) * 100).toFixed(1) : '0',
           totalAssessments: assessmentResults.length,
           avgScore,
-          certificateCount: certificates.length,
         },
         attendanceBySubject,
         assessmentResults,
-        certificates,
       },
     })
   } catch (error) {
@@ -391,7 +386,8 @@ export async function getStudentProfile(req, res) {
 export async function getStaff(req, res) {
   try {
     const instId = req.user.institutionId
-    const { departmentId, role: filterRole } = req.query
+    const { departmentId, role: filterRole, cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
 
     const where = {
       institutionId: instId,
@@ -399,8 +395,14 @@ export async function getStaff(req, res) {
     }
     if (departmentId) where.departmentId = departmentId
     if (filterRole) where.role = filterRole
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
 
-    const staff = await prisma.user.findMany({
+    const query = {
       where,
       select: {
         id: true, name: true, email: true, role: true, avatarUrl: true,
@@ -411,8 +413,22 @@ export async function getStaff(req, res) {
         },
       },
       orderBy: { name: 'asc' },
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
     })
-    res.json({ success: true, data: staff })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch staff' })
   }
@@ -425,20 +441,41 @@ export async function getStaff(req, res) {
 export async function getStudents(req, res) {
   try {
     const instId = req.user.institutionId
-    const { departmentId } = req.query
+    const { departmentId, cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
 
     const where = { institutionId: instId, role: 'student' }
     if (departmentId) where.departmentId = departmentId
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
 
-    const students = await prisma.user.findMany({
+    const query = {
       where,
       select: {
         id: true, name: true, email: true,
         department: { select: { id: true, name: true } },
       },
       orderBy: { name: 'asc' },
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
     })
-    res.json({ success: true, data: students })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch students' })
   }
@@ -478,31 +515,34 @@ export async function getAttendance(req, res) {
     dailyStats.forEach(a => { dailyMap[a.status] = a._count })
     const dailyTotal = Object.values(dailyMap).reduce((a, b) => a + b, 0)
 
-    // Per-dept breakdown
-    const deptBreakdownRaw = await prisma.attendance.findMany({
-      where: {
-        student: { institutionId: instId },
-        date: { gte: selectedDate, lt: nextDay },
-      },
-      select: { status: true, student: { select: { departmentId: true } } },
-    })
+    // Per-dept breakdown (aggregated at DB level)
+    const deptBreakdownRaw = await prisma.$queryRaw`
+      SELECT u."departmentId", a."status", COUNT(*)::int as count
+      FROM "Attendance" a
+      JOIN "User" u ON a."studentId" = u."id"
+      WHERE u."institutionId" = ${instId}
+        AND a."date" >= ${selectedDate}
+        AND a."date" < ${nextDay}
+      GROUP BY u."departmentId", a."status"
+    `
     const deptStats = {}
     deptIds.forEach(id => { deptStats[id] = { departmentId: id, name: deptNameMap[id], present: 0, absent: 0, late: 0, total: 0 } })
     deptBreakdownRaw.forEach(r => {
-      const did = r.student.departmentId
+      const did = r.departmentId
       if (deptStats[did]) {
-        deptStats[did][r.status] = (deptStats[did][r.status] || 0) + 1
-        deptStats[did].total++
+        deptStats[did][r.status] = (deptStats[did][r.status] || 0) + r.count
+        deptStats[did].total += r.count
       }
     })
     Object.values(deptStats).forEach(d => {
       d.percentage = d.total > 0 ? ((d.present / d.total) * 100).toFixed(1) : '0'
     })
 
-    // 7-day trend
-    const trendRaw = await prisma.attendance.findMany({
+    // 7-day trend (aggregated at DB level)
+    const trendRaw = await prisma.attendance.groupBy({
+      by: ['date', 'status'],
       where: { student: { institutionId: instId }, date: { gte: trendStart, lt: nextDay } },
-      select: { date: true, status: true },
+      _count: true,
     })
     const trendMap = {}
     for (let i = 6; i >= 0; i--) {
@@ -513,8 +553,8 @@ export async function getAttendance(req, res) {
     trendRaw.forEach(r => {
       const key = r.date.toISOString().split('T')[0]
       if (trendMap[key]) {
-        trendMap[key][r.status] = (trendMap[key][r.status] || 0) + 1
-        trendMap[key].total++
+        trendMap[key][r.status] = (trendMap[key][r.status] || 0) + r._count
+        trendMap[key].total += r._count
       }
     })
 
@@ -591,6 +631,50 @@ export async function getAnalytics(req, res) {
 }
 
 // ═══════════════════════════════════════════════
+// GET /college-admin/assessments
+// ═══════════════════════════════════════════════
+
+export async function getAssessments(req, res) {
+  try {
+    const instId = req.user.institutionId
+    const { cursor, limit: rawLimit } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const where = { creator: { institutionId: instId } }
+
+    const query = {
+      where,
+      include: {
+        subject: { select: { name: true, department: { select: { name: true } } } },
+        creator: { select: { name: true } },
+        _count: { select: { questions: true, results: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+    }
+
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.assessment.findMany(query),
+      prisma.assessment.count({ where }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
+    })
+  } catch (error) {
+    console.error('College admin assessments error:', error)
+    res.status(500).json({ success: false, error: 'Failed to fetch assessments' })
+  }
+}
+
+// ═══════════════════════════════════════════════
 // GET /college-admin/pending
 // ═══════════════════════════════════════════════
 
@@ -600,6 +684,7 @@ export async function getPending(req, res) {
       where: { institutionId: req.user.institutionId, role: 'pending' },
       select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     })
     res.json({ success: true, data: pending })
   } catch (error) {

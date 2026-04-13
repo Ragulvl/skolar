@@ -1,15 +1,19 @@
-import { UserCog } from 'lucide-react'
-import DataTable from '../../../components/ui/DataTable'
+import { useState } from 'react'
+import { UserCog, Users } from 'lucide-react'
+import PaginatedDataPage from '../../../components/ui/PaginatedDataPage'
 import Badge from '../../../components/ui/Badge'
 import { useAuth } from '../../../context/AuthContext'
-import useAPI from '../../../hooks/useAPI'
+import { usePaginatedAPI } from '../../../hooks/useAPI'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 
 export default function SchoolPrincipalTeachers() {
   const { user } = useAuth()
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const { data: teachers } = useAPI(
+  const { items, loading, loadingMore, hasMore, total, loadMore } = usePaginatedAPI(
     user?.institutionId ? `/school/teachers-by-institution/${user.institutionId}` : null,
-    { fallback: [], staleTime: 60_000 }
+    { params: { search: debouncedSearch }, pageSize: 20, staleTime: 60_000 }
   )
 
   const columns = [
@@ -29,22 +33,25 @@ export default function SchoolPrincipalTeachers() {
     { header: 'Subject', accessor: 'subject', cell: (row) => <Badge variant="brand" size="sm">{row.subject}</Badge> },
     { header: 'Grade', accessor: 'grade', cell: (row) => <span className="text-dark-100">Grade {row.grade}</span> },
     { header: 'Section', accessor: 'section', cell: (row) => <Badge variant="neutral" size="sm">{row.section}</Badge> },
-    {
-      header: 'Actions', sortable: false, cell: () => (
-        <button className="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1">
-          <UserCog className="w-3 h-3" /> Reassign
-        </button>
-      )
-    },
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold font-heading">Teachers</h1>
-        <p className="text-sm text-dark-200 mt-1.5">View and manage teacher assignments.</p>
-      </div>
-      <DataTable columns={columns} data={teachers} searchPlaceholder="Search teachers..." />
-    </div>
+    <PaginatedDataPage
+      title="Teachers"
+      subtitle="View and manage teacher assignments."
+      columns={columns}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      total={total}
+      onLoadMore={loadMore}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search teachers..."
+      emptyIcon={Users}
+      emptyTitle="No teachers found"
+      emptyMessage="No teachers assigned to this institution yet."
+    />
   )
 }

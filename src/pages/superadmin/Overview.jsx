@@ -1,12 +1,10 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Building2, Users, GraduationCap, School, Activity, CheckCircle2,
-  AlertTriangle, ChevronRight, UserCheck, ClipboardList, Award,
-  BarChart3, FileText, Clock, Plus, Shield
+  Building2, Users, GraduationCap, School, Activity,
+  AlertTriangle, ChevronRight, UserCheck, ClipboardList,
+  FileText, Clock, Shield
 } from 'lucide-react'
 import StatCard from '../../components/ui/StatCard'
-import Badge from '../../components/ui/Badge'
 import { useMultiAPI } from '../../hooks/useAPI'
 
 export default function SuperAdminOverview() {
@@ -101,10 +99,10 @@ export default function SuperAdminOverview() {
         </div>
         <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-4 text-center">
           <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center mx-auto mb-2">
-            <Award className="w-4 h-4 text-amber-400" />
+            <ClipboardList className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-xl font-bold font-heading text-dark-50">{loading ? '—' : stats?.certificates || 0}</p>
-          <p className="text-xs text-dark-400 mt-0.5">Certificates</p>
+          <p className="text-xl font-bold font-heading text-dark-50">{loading ? '—' : stats?.attendance || 0}</p>
+          <p className="text-xs text-dark-400 mt-0.5">Attendance</p>
         </div>
       </div>
 
@@ -202,27 +200,7 @@ export default function SuperAdminOverview() {
         </div>
       </div>
 
-      {/* System Health */}
-      <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-6">
-        <h3 className="font-semibold font-heading mb-4 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-success" /> System Health
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { label: 'API Server', status: 'operational', icon: Activity },
-            { label: 'Database', status: 'operational', icon: CheckCircle2 },
-            { label: 'Auth Service', status: 'operational', icon: Shield },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between p-3 rounded-xl bg-dark-800/30 border border-dark-500/10">
-              <div className="flex items-center gap-3">
-                <item.icon className="w-4 h-4 text-success" />
-                <span className="text-sm text-dark-200">{item.label}</span>
-              </div>
-              <Badge variant="success" size="sm">{item.status}</Badge>
-            </div>
-          ))}
-        </div>
-      </div>
+
     </div>
   )
 }

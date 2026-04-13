@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, ChevronDown, ChevronRight, Users } from 'lucide-react'
 import Badge from '../../../components/ui/Badge'
 import Modal from '../../../components/ui/Modal'
 import FormInput from '../../../components/ui/FormInput'
 import { useAuth } from '../../../context/AuthContext'
+import useAPI, { invalidateCache } from '../../../hooks/useAPI'
 import api from '../../../api/client'
 
 const categoryLabels = { early: 'Early Years', primary: 'Primary', middle: 'Middle School', high: 'High School', higher_sec: 'Higher Secondary' }
@@ -24,19 +25,15 @@ export default function SchoolPrincipalGrades() {
   const [showAddSection, setShowAddSection] = useState(false)
   const [selectedGradeId, setSelectedGradeId] = useState(null)
   const [sectionName, setSectionName] = useState('')
-  const [grades, setGrades] = useState([])
   const [creating, setCreating] = useState(false)
 
   const institutionId = user?.institutionId
 
-  const fetchGrades = () => {
-    if (!institutionId) return
-    api.get(`/school/grades/${institutionId}`)
-      .then(res => setGrades(res.data.data || []))
-      .catch(() => {})
-  }
-
-  useEffect(() => { fetchGrades() }, [institutionId])
+  // ─── Cached data fetching ─────────────────────────────────────────────
+  const { data: grades, refetch } = useAPI(
+    institutionId ? `/school/grades/${institutionId}` : null,
+    { staleTime: 300_000, fallback: [] }
+  )
 
   const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
 
@@ -52,7 +49,8 @@ export default function SchoolPrincipalGrades() {
       await api.post('/school/sections', { name: sectionName, gradeId: selectedGradeId, institutionId })
       setShowAddSection(false)
       setSectionName('')
-      fetchGrades()
+      invalidateCache('/school/grades')
+      refetch()
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to create section')
     } finally {

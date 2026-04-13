@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   UserCheck, Clock, School, GraduationCap, AlertTriangle,
   CheckCircle2, Loader2
 } from 'lucide-react'
 import Badge from '../../components/ui/Badge'
+import useAPI, { invalidateCache } from '../../hooks/useAPI'
 import api from '../../api/client'
 
 const APPROVAL_ROLES = [
@@ -65,7 +66,7 @@ function PendingUserRow({ user, isSelected, onToggleSelect, onApprove, onReject,
           value={individualRole}
           onChange={e => setIndividualRole(e.target.value)}
           className="px-2 py-1.5 rounded-lg bg-dark-800/50 border border-dark-500/20
-            text-xs text-dark-100 focus:outline-none appearance-none cursor-pointer"
+            text-xs text-dark-100 focus:outline-none appearance-none select-styled cursor-pointer"
         >
           {APPROVAL_ROLES.map(r => (
             <option key={r.value} value={r.value}>{r.label}</option>
@@ -93,22 +94,16 @@ function PendingUserRow({ user, isSelected, onToggleSelect, onApprove, onReject,
 }
 
 export default function SuperAdminPendingApprovals() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // ─── Cached data fetching (capped at 100 on backend) ─────────────────
+  const { data, loading, refetch } = useAPI('/superadmin/pending-users', {
+    staleTime: 15_000,
+    fallback: null,
+  })
+
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkRole, setBulkRole] = useState('student')
   const [approving, setApproving] = useState(null)
   const [rejecting, setRejecting] = useState(null)
-
-  const fetchPending = async () => {
-    try {
-      const res = await api.get('/superadmin/pending-users')
-      setData(res.data.data)
-    } catch {}
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { fetchPending() }, [])
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -131,7 +126,8 @@ export default function SuperAdminPendingApprovals() {
     setApproving(userId)
     try {
       await api.patch(`/superadmin/users/${userId}/role`, { role })
-      await fetchPending()
+      invalidateCache('/superadmin')
+      refetch()
       setSelectedIds(prev => { const next = new Set(prev); next.delete(userId); return next })
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to approve')
@@ -144,7 +140,8 @@ export default function SuperAdminPendingApprovals() {
     setRejecting(userId)
     try {
       await api.delete(`/superadmin/users/${userId}`)
-      await fetchPending()
+      invalidateCache('/superadmin')
+      refetch()
       setSelectedIds(prev => { const next = new Set(prev); next.delete(userId); return next })
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to reject')
@@ -162,7 +159,8 @@ export default function SuperAdminPendingApprovals() {
         role: bulkRole,
       })
       setSelectedIds(new Set())
-      await fetchPending()
+      invalidateCache('/superadmin')
+      refetch()
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to bulk approve')
     } finally {
@@ -230,7 +228,7 @@ export default function SuperAdminPendingApprovals() {
                   onChange={e => setBulkRole(e.target.value)}
                   className="px-3 py-2 rounded-lg bg-dark-800/50 border border-dark-500/20
                     text-sm text-dark-100 focus:outline-none focus:border-brand-500/50 transition-all
-                    appearance-none cursor-pointer"
+                    appearance-none select-styled cursor-pointer"
                 >
                   {APPROVAL_ROLES.map(r => (
                     <option key={r.value} value={r.value}>{r.label}</option>

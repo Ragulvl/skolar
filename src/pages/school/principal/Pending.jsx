@@ -66,7 +66,7 @@ export default function SchoolPrincipalPending() {
                 </div>
                 <div className="flex items-center gap-2">
                   <select value={selectedRoles[u.id] || ''} onChange={(e) => setSelectedRoles(p => ({ ...p, [u.id]: e.target.value }))}
-                    className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-dark-800 border border-dark-500/40 text-sm text-dark-50 focus:outline-none focus:border-brand-500">
+                    className="appearance-none select-styled pl-3 pr-8 py-2 rounded-xl bg-dark-800 border border-dark-500/40 text-sm text-dark-50 focus:outline-none focus:border-brand-500">
                     <option value="">Select role</option>
                     {schoolRoles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>

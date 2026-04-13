@@ -1,14 +1,19 @@
-import DataTable from '../../../components/ui/DataTable'
+import { useState } from 'react'
+import { GraduationCap } from 'lucide-react'
+import PaginatedDataPage from '../../../components/ui/PaginatedDataPage'
 import Badge from '../../../components/ui/Badge'
 import { useAuth } from '../../../context/AuthContext'
-import useAPI from '../../../hooks/useAPI'
+import { usePaginatedAPI } from '../../../hooks/useAPI'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 
 export default function SchoolTeacherStudents() {
   const { user } = useAuth()
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
 
-  const { data: students } = useAPI(
+  const { items, loading, loadingMore, hasMore, total, loadMore } = usePaginatedAPI(
     user?.institutionId ? `/school/students-by-institution/${user.institutionId}` : null,
-    { fallback: [], staleTime: 60_000 }
+    { params: { search: debouncedSearch }, pageSize: 20, staleTime: 60_000 }
   )
 
   const columns = [
@@ -25,12 +30,21 @@ export default function SchoolTeacherStudents() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold font-heading">My Students</h1>
-        <p className="text-sm text-dark-200 mt-1.5">View student performance across your classes.</p>
-      </div>
-      <DataTable columns={columns} data={students} searchPlaceholder="Search students..." />
-    </div>
+    <PaginatedDataPage
+      title="My Students"
+      subtitle="View student performance across your classes."
+      columns={columns}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      total={total}
+      onLoadMore={loadMore}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search students..."
+      emptyIcon={GraduationCap}
+      emptyTitle="No students found"
+    />
   )
 }

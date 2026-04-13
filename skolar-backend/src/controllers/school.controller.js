@@ -1,11 +1,24 @@
 import prisma from '../config/prisma.js'
 
-// GET /school/teachers-by-institution/:institutionId
+// GET /school/teachers-by-institution/:institutionId — cursor-paginated
 export async function getTeachersByInstitution(req, res) {
   try {
     const { institutionId } = req.params
-    const teachers = await prisma.user.findMany({
-      where: { institutionId, role: 'teacher' },
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const where = { institutionId, role: 'teacher' }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
+      where,
+      orderBy: { name: 'asc' },
+      take: limit + 1,
       select: {
         id: true, name: true, email: true,
         teacherAssignments: {
@@ -15,41 +28,82 @@ export async function getTeachersByInstitution(req, res) {
           }
         }
       },
-      orderBy: { name: 'asc' },
-    })
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
     // Flatten for table display
-    const flat = teachers.map(t => ({
+    const data = items.map(t => ({
       id: t.id, name: t.name, email: t.email,
       subject: t.teacherAssignments[0]?.subject?.name || '—',
       grade: t.teacherAssignments[0]?.section?.grade?.name || '—',
       section: t.teacherAssignments[0]?.section?.name || '—',
     }))
-    res.json({ success: true, data: flat })
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
+    })
   } catch (error) {
     console.error('getTeachersByInstitution error:', error)
     res.status(500).json({ success: false, error: 'Failed to fetch teachers' })
   }
 }
 
-// GET /school/students-by-institution/:institutionId
+// GET /school/students-by-institution/:institutionId — cursor-paginated
 export async function getStudentsByInstitution(req, res) {
   try {
     const { institutionId } = req.params
-    const students = await prisma.user.findMany({
-      where: { institutionId, role: 'student' },
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const where = { institutionId, role: 'student' }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
+      where,
+      orderBy: { name: 'asc' },
+      take: limit + 1,
       select: {
         id: true, name: true, email: true,
         grade: { select: { name: true } },
         section: { select: { name: true } },
       },
-      orderBy: { name: 'asc' },
-    })
-    const flat = students.map(s => ({
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    const data = items.map(s => ({
       id: s.id, name: s.name, email: s.email,
       grade: s.grade?.name || '—',
       section: s.section?.name || '—',
     }))
-    res.json({ success: true, data: flat })
+
+    res.json({
+      success: true,
+      data,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
+    })
   } catch (error) {
     console.error('getStudentsByInstitution error:', error)
     res.status(500).json({ success: false, error: 'Failed to fetch students' })
@@ -161,6 +215,7 @@ export async function getStudents(req, res) {
     const students = await prisma.user.findMany({
       where: { sectionId, role: 'student' },
       select: { id: true, name: true, email: true, gradeId: true, sectionId: true },
+      take: 200,
     })
     res.json({ success: true, data: students })
   } catch (error) {

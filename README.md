@@ -75,7 +75,7 @@ Users sign in with Google, pick their institution with a code, and land in pendi
 | College | Vice Chairman | Own college | Delegated authority |
 | College | Dean | Faculty level | Manage departments under faculty |
 | College | HOD | Single department | Department-level management |
-| Shared | Teacher | Assigned subjects | Attendance, assessments, certificates |
+| Shared | Teacher | Assigned subjects | Attendance, assessments, results |
 | Shared | Student | Own data | View grades, take assessments |
 
 </details>
@@ -103,7 +103,7 @@ The core features, grouped by who uses them:
 **Teaching**
 - Mark attendance per section/subject
 - Create MCQ assessments (auto-graded)
-- Issue certificates to students
+- Track student performance
 - View assigned classes and students
 - Track student performance
 
@@ -115,7 +115,7 @@ The core features, grouped by who uses them:
 - View attendance history
 - Check grades and scores
 - Browse subjects and teachers
-- Download certificates
+- View performance reports
 
 </td>
 </tr>
@@ -141,7 +141,7 @@ skolar/
 │       ├── school/
 │       │   ├── principal/       # Grades, sections, teachers, students
 │       │   ├── viceprincipal/   # Grade-scoped views
-│       │   ├── teacher/         # Attendance, assessments, certificates
+│       │   ├── teacher/         # Attendance, assessments, results
 │       │   └── student/         # Grades, attendance, assessments
 │       └── college/
 │           ├── chairman/        # College-wide oversight
@@ -152,7 +152,7 @@ skolar/
 │
 ├── skolar-backend/
 │   ├── prisma/
-│   │   ├── schema.prisma        # 15 data models
+│   │   ├── schema.prisma        # 14 data models
 │   │   └── seed.js              # Sample institutions + users
 │   └── src/
 │       ├── config/              # Prisma singleton, Passport setup
@@ -227,7 +227,7 @@ Frontend on `localhost:5173`, backend on `localhost:5000`.
 
 ## Database
 
-15 Prisma models. The schema handles both school structure (grades, sections) and college structure (departments) within the same data model.
+14 Prisma models. The schema handles both school structure (grades, sections) and college structure (departments) within the same data model.
 
 ```mermaid
 erDiagram
@@ -242,7 +242,6 @@ erDiagram
     User ||--o{ Attendance : "marks/receives"
     User ||--o{ Assessment : creates
     User ||--o{ AssessmentResult : submits
-    User ||--o{ Certificate : "earns/issues"
     Subject ||--o{ Assessment : has
     Assessment ||--o{ AssessmentQuestion : contains
     Assessment ||--o{ AssessmentResult : produces
@@ -262,7 +261,6 @@ erDiagram
 | `Subject` | Belongs to grade (school) or department (college) |
 | `Attendance` | Per student, per subject, per date |
 | `Assessment` | MCQ with questions and auto-grading |
-| `Certificate` | Issued by teacher to student for a subject |
 
 </details>
 

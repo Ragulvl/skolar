@@ -239,3 +239,186 @@ export function invalidateCache(urlOrPrefix) {
     }
   }
 }
+
+// ─── Window Focus Revalidation ──────────────────────────────────────────────
+// When the user returns to the tab after being away, mark all cached entries as
+// stale so the next useAPI mount triggers a background revalidation. This keeps
+// data fresh without polling.
+
+const FOCUS_LISTENERS = new Set()
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      FOCUS_LISTENERS.forEach(fn => fn())
+    }
+  })
+}
+
+/**
+ * Register a callback to run when the window regains focus.
+ * Used internally by useAPI to trigger background revalidation.
+ */
+function useWindowFocus(callback) {
+  const cbRef = useRef(callback)
+  cbRef.current = callback
+
+  useEffect(() => {
+    const handler = () => cbRef.current()
+    FOCUS_LISTENERS.add(handler)
+    return () => FOCUS_LISTENERS.delete(handler)
+  }, [])
+}
+
+/**
+ * usePaginatedAPI — caching wrapper for paginated list pages with cursor
+ * pagination, search, and filters.
+ *
+ * Caches the first page of results. On revisit, the cached first page renders
+ * instantly while a background revalidation refreshes it silently. Subsequent
+ * "load more" pages are fetched live (not cached) to keep memory bounded.
+ *
+ * @param {string}   baseUrl    — API path without query (e.g. '/superadmin/users')
+ * @param {object}   options
+ * @param {object}    options.params     — filter/search params (merged into URL)
+ * @param {number}    options.pageSize   — items per page (default: 20)
+ * @param {number}    options.staleTime  — ms before cache is stale (default: 60s)
+ * @param {function}  options.transform  — transform response (default: res => res.data)
+ *
+ * @returns {{ items, loading, loadingMore, hasMore, total, fetchPage, reset }}
+ */
+export function usePaginatedAPI(baseUrl, options = {}) {
+  const {
+    params = {},
+    pageSize = 20,
+    staleTime = 60_000,
+    transform = (res) => res.data,
+  } = options
+
+  // Build cache key from baseUrl + sorted params (excludes cursor)
+  const paramStr = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&')
+  const cacheKey = paramStr ? `${baseUrl}?${paramStr}` : baseUrl
+
+  const cached = cache.get(cacheKey)
+
+  const [items, setItems] = useState(cached?.data?.items ?? [])
+  const [loading, setLoading] = useState(!cached)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(cached?.data?.hasMore ?? false)
+  const [total, setTotal] = useState(cached?.data?.total ?? 0)
+  const cursorRef = useRef(null)
+  const cacheKeyRef = useRef(cacheKey)
+  cacheKeyRef.current = cacheKey
+
+  const fetchPage = useCallback(async (cursor = null, isBackground = false) => {
+    const isInitial = !cursor
+    if (isInitial && !isBackground) setLoading(true)
+    if (!isInitial) setLoadingMore(true)
+
+    try {
+      const qp = new URLSearchParams({ limit: pageSize, ...params })
+      if (cursor) qp.set('cursor', cursor)
+      const url = `${baseUrl}?${qp}`
+
+      let promise = inflight.get(url)
+      if (!promise) {
+        promise = api.get(url)
+        inflight.set(url, promise)
+      }
+
+      const res = await promise
+      const result = transform(res)
+      const newItems = result.data || []
+      const pagination = result.pagination || {}
+
+      if (cacheKeyRef.current === cacheKey) {
+        if (isInitial) {
+          setItems(newItems)
+        } else {
+          setItems(prev => [...prev, ...newItems])
+        }
+        setHasMore(pagination.hasMore ?? false)
+        setTotal(pagination.total ?? 0)
+        cursorRef.current = pagination.nextCursor ?? null
+      }
+
+      // Cache only the first page for instant revisit
+      if (isInitial) {
+        cache.set(cacheKey, {
+          data: { items: newItems, hasMore: pagination.hasMore, total: pagination.total },
+          ts: Date.now(),
+        })
+      }
+
+      inflight.delete(url)
+    } catch (err) {
+      inflight.delete(`${baseUrl}?${new URLSearchParams({ limit: pageSize, ...params })}`)
+      // Keep stale data on error
+    } finally {
+      if (isInitial && !isBackground) setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [baseUrl, cacheKey, pageSize, paramStr]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initial fetch or serve from cache
+  useEffect(() => {
+    const cached = cache.get(cacheKey)
+    cursorRef.current = null
+
+    if (cached) {
+      setItems(cached.data.items)
+      setHasMore(cached.data.hasMore ?? false)
+      setTotal(cached.data.total ?? 0)
+      setLoading(false)
+
+      const isFresh = Date.now() - cached.ts < staleTime
+      if (!isFresh) {
+        fetchPage(null, true)
+      }
+    } else {
+      setItems([])
+      fetchPage(null, false)
+    }
+  }, [cacheKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Window-focus revalidation
+  useWindowFocus(() => {
+    const cached = cache.get(cacheKeyRef.current)
+    if (cached && Date.now() - cached.ts >= staleTime) {
+      fetchPage(null, true)
+    }
+  })
+
+  const loadMore = useCallback(() => {
+    if (cursorRef.current && hasMore && !loadingMore) {
+      fetchPage(cursorRef.current)
+    }
+  }, [hasMore, loadingMore, fetchPage])
+
+  const reset = useCallback(() => {
+    cache.delete(cacheKey)
+    cursorRef.current = null
+    return fetchPage(null, false)
+  }, [cacheKey, fetchPage])
+
+  return { items, loading, loadingMore, hasMore, total, loadMore, reset, setItems }
+}
+
+/**
+ * mutate — perform a mutation (POST/PATCH/DELETE) and auto-invalidate caches.
+ *
+ * @param {'post'|'patch'|'delete'} method
+ * @param {string}                  url
+ * @param {any}                     data        — request body (omit for DELETE)
+ * @param {string[]}                invalidate  — URL prefixes to invalidate after success
+ * @returns {Promise} — the axios response
+ */
+export async function mutate(method, url, data, invalidate = []) {
+  const res = await api[method](url, data)
+  invalidate.forEach(prefix => invalidateCache(prefix))
+  return res
+}

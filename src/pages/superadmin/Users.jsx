@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users as UsersIcon, Search, Filter, ChevronRight, Trash2,
@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import Badge from '../../components/ui/Badge'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { usePaginatedAPI, invalidateCache } from '../../hooks/useAPI'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import api from '../../api/client'
 
 const ROLES = [
@@ -41,60 +43,35 @@ const PAGE_SIZE = 20
 
 export default function SuperAdminUsers() {
   const navigate = useNavigate()
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
-  const [total, setTotal] = useState(0)
-  const cursorRef = useRef(null)
-  const sentinelRef = useRef(null)
 
   // Filters
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [approvalFilter, setApprovalFilter] = useState('all')
-  const searchTimeout = useRef(null)
+  const debouncedSearch = useDebouncedValue(search, 300)
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const fetchUsers = useCallback(async (cursor = null, reset = false) => {
-    const isInitial = !cursor
-    if (isInitial) setLoading(true)
-    else setLoadingMore(true)
+  const sentinelRef = useRef(null)
 
-    try {
-      const params = new URLSearchParams({ limit: PAGE_SIZE })
-      if (cursor) params.set('cursor', cursor)
-      if (roleFilter !== 'all') params.set('role', roleFilter)
-      if (approvalFilter !== 'all') params.set('approved', approvalFilter)
-      if (search) params.set('search', search)
+  // ─── Cached paginated data fetching ─────────────────────────────────────
+  // Filter params are part of the cache key, so each filter combination
+  // gets its own cached first page.
+  const filterParams = {}
+  if (roleFilter !== 'all') filterParams.role = roleFilter
+  if (approvalFilter !== 'all') filterParams.approved = approvalFilter
+  if (debouncedSearch) filterParams.search = debouncedSearch
 
-      const res = await api.get(`/superadmin/users?${params}`)
-      const { data, pagination } = res.data
-
-      setUsers(prev => isInitial || reset ? data : [...prev, ...data])
-      setHasMore(pagination.hasMore)
-      setTotal(pagination.total)
-      cursorRef.current = pagination.nextCursor
-    } catch {}
-    finally {
-      if (isInitial) setLoading(false)
-      else setLoadingMore(false)
-    }
-  }, [roleFilter, approvalFilter, search])
-
-  // Re-fetch when filters change
-  useEffect(() => {
-    cursorRef.current = null
-    fetchUsers(null, true)
-  }, [fetchUsers])
-
-  // Debounced search
-  const handleSearchChange = (val) => {
-    setSearch(val)
-  }
+  const {
+    items: users, loading, loadingMore, hasMore, total,
+    loadMore, reset, setItems
+  } = usePaginatedAPI('/superadmin/users', {
+    params: filterParams,
+    pageSize: PAGE_SIZE,
+    staleTime: 60_000,
+  })
 
   // Infinite scroll
   useEffect(() => {
@@ -102,22 +79,22 @@ export default function SuperAdminUsers() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && hasMore && !loadingMore) {
-          fetchUsers(cursorRef.current)
+          loadMore()
         }
       },
       { rootMargin: '200px' }
     )
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [hasMore, loadingMore, fetchUsers])
+  }, [hasMore, loadingMore, loadMore])
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await api.delete(`/superadmin/users/${deleteTarget.id}`)
-      setUsers(prev => prev.filter(u => u.id !== deleteTarget.id))
-      setTotal(prev => prev - 1)
+      setItems(prev => prev.filter(u => u.id !== deleteTarget.id))
+      invalidateCache('/superadmin')
       setDeleteTarget(null)
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to delete user')
@@ -148,7 +125,7 @@ export default function SuperAdminUsers() {
               type="text"
               placeholder="Search by name or email..."
               value={search}
-              onChange={e => handleSearchChange(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-dark-800/50 border border-dark-500/20
                 text-sm text-dark-100 placeholder:text-dark-400 focus:outline-none
                 focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
@@ -161,7 +138,7 @@ export default function SuperAdminUsers() {
             onChange={e => setRoleFilter(e.target.value)}
             className="px-3 py-2.5 rounded-xl bg-dark-800/50 border border-dark-500/20
               text-sm text-dark-100 focus:outline-none focus:border-brand-500/50 transition-all
-              appearance-none cursor-pointer min-w-[140px]"
+              appearance-none select-styled cursor-pointer min-w-[140px]"
           >
             {ROLES.map(r => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -174,7 +151,7 @@ export default function SuperAdminUsers() {
             onChange={e => setApprovalFilter(e.target.value)}
             className="px-3 py-2.5 rounded-xl bg-dark-800/50 border border-dark-500/20
               text-sm text-dark-100 focus:outline-none focus:border-brand-500/50 transition-all
-              appearance-none cursor-pointer min-w-[140px]"
+              appearance-none select-styled cursor-pointer min-w-[140px]"
           >
             <option value="all">All Status</option>
             <option value="true">Approved</option>
@@ -312,7 +289,7 @@ export default function SuperAdminUsers() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Delete User"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? This will permanently remove all their data including attendance, assessments, and certificates.`}
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This will permanently remove all their data including attendance and assessments.`}
         confirmLabel={deleting ? 'Deleting...' : 'Delete User'}
         variant="danger"
       />

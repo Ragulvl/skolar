@@ -32,9 +32,16 @@ function invalidateCache(prefix) {
 
 export async function getInstitutions(req, res) {
   try {
-    const { type, cursor, limit: rawLimit } = req.query
+    const { type, cursor, limit: rawLimit, search } = req.query
     const where = {}
     if (type === 'school' || type === 'college') where.type = type
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
+      ]
+    }
 
     const limit = Math.min(parseInt(rawLimit) || 20, 100)
 
@@ -88,12 +95,11 @@ export async function getPlatformStats(req, res) {
     if (cached) return res.json({ success: true, data: cached })
 
     // Combine role counts into a single groupBy instead of 5 separate count() calls
-    const [instCounts, roleCounts, assessments, attendance, certificates] = await Promise.all([
+    const [instCounts, roleCounts, assessments, attendance] = await Promise.all([
       prisma.institution.groupBy({ by: ['type'], _count: true }),
       prisma.user.groupBy({ by: ['role'], _count: true }),
       prisma.assessment.count(),
       prisma.attendance.count(),
-      prisma.certificate.count(),
     ])
 
     // Derive counts from groupBy results
@@ -114,7 +120,6 @@ export async function getPlatformStats(req, res) {
       admins: roleMap.admin || 0,
       assessments,
       attendance,
-      certificates,
     }
 
     setCache('stats', data)
@@ -184,25 +189,35 @@ export async function deleteInstitution(req, res) {
       where: { department: { institutionId: id } }
     })
     await prisma.department.deleteMany({ where: { institutionId: id } })
-    // 6. Handle users — delete related user data then users
-    const users = await prisma.user.findMany({ where: { institutionId: id }, select: { id: true } })
-    const userIds = users.map(u => u.id)
-    if (userIds.length > 0) {
-      await prisma.attendance.deleteMany({ where: { OR: [{ studentId: { in: userIds } }, { teacherId: { in: userIds } }] } })
-      await prisma.assessmentResult.deleteMany({ where: { studentId: { in: userIds } } })
-      await prisma.certificate.deleteMany({ where: { OR: [{ studentId: { in: userIds } }, { issuedBy: { in: userIds } }] } })
-      // Delete assessments created by users in this institution
-      const assessments = await prisma.assessment.findMany({ where: { createdBy: { in: userIds } }, select: { id: true } })
+    // 6. Handle users — delete related user data then users (batched for large institutions)
+    let userCursor = undefined
+    const BATCH = 500
+    while (true) {
+      const batch = await prisma.user.findMany({
+        where: { institutionId: id },
+        select: { id: true },
+        take: BATCH,
+        ...(userCursor ? { cursor: { id: userCursor }, skip: 1 } : {}),
+        orderBy: { id: 'asc' },
+      })
+      if (batch.length === 0) break
+      const batchIds = batch.map(u => u.id)
+      userCursor = batch[batch.length - 1].id
+
+      await prisma.attendance.deleteMany({ where: { OR: [{ studentId: { in: batchIds } }, { teacherId: { in: batchIds } }] } })
+      await prisma.assessmentResult.deleteMany({ where: { studentId: { in: batchIds } } })
+
+      const assessments = await prisma.assessment.findMany({ where: { createdBy: { in: batchIds } }, select: { id: true }, take: 5000 })
       const assessmentIds = assessments.map(a => a.id)
       if (assessmentIds.length > 0) {
         await prisma.assessmentQuestion.deleteMany({ where: { assessmentId: { in: assessmentIds } } })
         await prisma.assessmentResult.deleteMany({ where: { assessmentId: { in: assessmentIds } } })
         await prisma.assessment.deleteMany({ where: { id: { in: assessmentIds } } })
       }
-      await prisma.teacherAssignment.deleteMany({ where: { teacherId: { in: userIds } } })
-      await prisma.teacherDeptAssignment.deleteMany({ where: { teacherId: { in: userIds } } })
-      await prisma.user.deleteMany({ where: { institutionId: id } })
+      await prisma.teacherAssignment.deleteMany({ where: { teacherId: { in: batchIds } } })
+      await prisma.teacherDeptAssignment.deleteMany({ where: { teacherId: { in: batchIds } } })
     }
+    await prisma.user.deleteMany({ where: { institutionId: id } })
     // 7. Finally delete the institution
     await prisma.institution.delete({ where: { id } })
 
@@ -242,6 +257,7 @@ export async function getInstitutionDetail(req, res) {
           },
         },
         orderBy: { name: 'asc' },
+        take: 50,
       }),
       prisma.subject.findMany({
         where: { institutionId: id },
@@ -250,6 +266,7 @@ export async function getInstitutionDetail(req, res) {
           department: { select: { name: true } },
         },
         orderBy: { name: 'asc' },
+        take: 100,
       }),
       prisma.department.findMany({
         where: { institutionId: id },
@@ -292,10 +309,19 @@ export async function getInstitutionDetail(req, res) {
 
 export async function getAdmins(req, res) {
   try {
-    // Single query with include — fixes the N+1 problem where we were
-    // running a separate query for each admin's assignments
-    const admins = await prisma.user.findMany({
-      where: { role: 'admin' },
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const where = { role: 'admin' }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
+      where,
       select: {
         id: true,
         name: true,
@@ -308,10 +334,19 @@ export async function getAdmins(req, res) {
         },
       },
       orderBy: { createdAt: 'desc' },
-    })
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
 
     // Map to expected shape (assignments instead of adminAssignments)
-    const result = admins.map(admin => ({
+    const result = items.map(admin => ({
       id: admin.id,
       name: admin.name,
       email: admin.email,
@@ -319,7 +354,11 @@ export async function getAdmins(req, res) {
       assignments: admin.adminAssignments,
     }))
 
-    res.json({ success: true, data: result })
+    res.json({
+      success: true,
+      data: result,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
+    })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch admins' })
   }
@@ -465,11 +504,6 @@ export async function getUserById(req, res) {
             orderBy: { submittedAt: 'desc' },
             take: 20,
           },
-          certificatesEarned: {
-            select: { title: true, issuedAt: true, subject: { select: { name: true } } },
-            orderBy: { issuedAt: 'desc' },
-            take: 20,
-          },
         },
       }),
       // Use aggregate for attendance instead of loading every record
@@ -523,12 +557,16 @@ export async function updateUserRole(req, res) {
       return res.status(400).json({ success: false, error: `Invalid role. Must be: ${validRoles.join(', ')}` })
     }
 
+    // Only force isApproved=false when changing TO 'pending'.
+    // For all other role changes, preserve the current approval status.
+    const updateData = { role }
+    if (role === 'pending') {
+      updateData.isApproved = false
+    }
+
     const user = await prisma.user.update({
       where: { id },
-      data: {
-        role,
-        isApproved: role !== 'pending',
-      },
+      data: updateData,
       select: { id: true, name: true, email: true, role: true, isApproved: true },
     })
 
@@ -570,10 +608,9 @@ export async function deleteUser(req, res) {
     // Cascade clean related data
     await prisma.attendance.deleteMany({ where: { OR: [{ studentId: id }, { teacherId: id }] } })
     await prisma.assessmentResult.deleteMany({ where: { studentId: id } })
-    await prisma.certificate.deleteMany({ where: { OR: [{ studentId: id }, { issuedBy: id }] } })
 
     // Delete assessments created by this user
-    const assessments = await prisma.assessment.findMany({ where: { createdBy: id }, select: { id: true } })
+    const assessments = await prisma.assessment.findMany({ where: { createdBy: id }, select: { id: true }, take: 1000 })
     const assessmentIds = assessments.map(a => a.id)
     if (assessmentIds.length > 0) {
       await prisma.assessmentQuestion.deleteMany({ where: { assessmentId: { in: assessmentIds } } })
@@ -610,6 +647,7 @@ export async function getPendingUsers(req, res) {
         institution: { select: { id: true, name: true, type: true, code: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     })
 
     // Group by institution
@@ -677,7 +715,6 @@ export async function getEnhancedAnalytics(req, res) {
       totalAssessments,
       totalResults,
       avgScore,
-      totalCertificates,
       institutionCities,
       monthlySignupData,
     ] = await Promise.all([
@@ -691,7 +728,6 @@ export async function getEnhancedAnalytics(req, res) {
       prisma.assessment.count(),
       prisma.assessmentResult.count(),
       prisma.assessmentResult.aggregate({ _avg: { score: true } }),
-      prisma.certificate.count(),
       // Use groupBy on city instead of fetching ALL institutions
       prisma.institution.groupBy({
         by: ['city'],
@@ -699,13 +735,14 @@ export async function getEnhancedAnalytics(req, res) {
         orderBy: { _count: { city: 'desc' } },
         take: 10,
       }),
-      // Use groupBy with raw date truncation for monthly signups
-      // Prisma doesn't support date_trunc natively, so we fetch just createdAt
-      // but ONLY the date field — much lighter than full user objects
-      prisma.user.findMany({
-        where: { createdAt: { gte: sixMonthsAgo } },
-        select: { createdAt: true },
-      }),
+      // Monthly signups — aggregate at DB level, never load individual rows
+      prisma.$queryRaw`
+        SELECT to_char(date_trunc('month', "createdAt"), 'YYYY-MM') as month, COUNT(*)::int as count
+        FROM "User"
+        WHERE "createdAt" >= ${sixMonthsAgo}
+        GROUP BY date_trunc('month', "createdAt")
+        ORDER BY month
+      `,
     ])
 
     // Process region data from groupBy
@@ -714,23 +751,16 @@ export async function getEnhancedAnalytics(req, res) {
       count: i._count,
     }))
 
-    // Process monthly signups (lightweight — only createdAt dates)
-    const monthlySignups = {}
-    monthlySignupData.forEach(u => {
-      const month = u.createdAt.toISOString().slice(0, 7)
-      monthlySignups[month] = (monthlySignups[month] || 0) + 1
-    })
+    // monthlySignupData is already aggregated
+    const monthlySignups = monthlySignupData
 
     const data = {
       roleDistribution: roleDistribution.map(r => ({ role: r.role, count: r._count })),
       institutionUsers: institutionUsers.map(i => ({ name: i.name, type: i.type, users: i._count.users })),
       attendanceStats: attendanceStats.reduce((acc, a) => { acc[a.status] = a._count; return acc }, {}),
       assessmentStats: { total: totalAssessments, results: totalResults, avgScore: avgScore._avg.score },
-      totalCertificates,
       regionData,
-      monthlySignups: Object.entries(monthlySignups)
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([month, count]) => ({ month, count })),
+      monthlySignups,
     }
 
     setCache('analytics', data)

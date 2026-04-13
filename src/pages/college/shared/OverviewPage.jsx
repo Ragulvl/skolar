@@ -1,4 +1,4 @@
-import { Building2, Users, GraduationCap, ClipboardCheck, FileText, TrendingUp, UserCheck } from 'lucide-react'
+import { Building2, Users, GraduationCap, ClipboardCheck, FileText, TrendingUp, UserCheck, BarChart3, UserCog, BookOpen, Award } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import StatCard from '../../../components/ui/StatCard'
 import { useAuth } from '../../../context/AuthContext'
@@ -12,6 +12,28 @@ export default function OverviewPage({ basePath }) {
   const roleLabel = ROLE_LABELS[user?.role] || 'Admin'
 
   const att = data?.todayAttendance || {}
+
+  // Build quick action links based on role
+  const quickActions = []
+  if (perms.canManageStaff) {
+    quickActions.push({ to: `${basePath}/staff`, icon: UserCog, label: 'Manage Staff', desc: 'View and manage teaching staff', color: 'brand' })
+  }
+  if (perms.canAssignDean) {
+    quickActions.push({ to: `${basePath}/departments`, icon: Award, label: 'Assign Deans', desc: 'Assign deans to departments', color: 'violet' })
+  }
+  if (perms.canAssignHOD) {
+    quickActions.push({ to: `${basePath}/departments`, icon: Building2, label: 'Manage Departments', desc: 'HOD assignments & structure', color: 'emerald' })
+  }
+  if (perms.canViewAnalytics) {
+    quickActions.push({ to: `${basePath}/analytics`, icon: BarChart3, label: 'View Analytics', desc: 'Institution-wide insights', color: 'amber' })
+  }
+
+  const COLOR_MAP = {
+    brand: { bg: 'bg-brand-500/10', text: 'text-brand-400', border: 'border-brand-500/20 hover:border-brand-500/40' },
+    violet: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20 hover:border-violet-500/40' },
+    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20 hover:border-emerald-500/40' },
+    amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20 hover:border-amber-500/40' },
+  }
 
   return (
     <div className="space-y-6">
@@ -28,7 +50,7 @@ export default function OverviewPage({ basePath }) {
         <StatCard icon={FileText} label="Assessments" value={loading ? '—' : (data.assessments || 0).toString()} />
       </div>
 
-      {/* Quick actions */}
+      {/* Pending approval alert */}
       {data.pending > 0 && perms.canApproveUsers && (
         <Link to={`${basePath}/pending`}
           className="block p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all">
@@ -39,6 +61,25 @@ export default function OverviewPage({ basePath }) {
             </span>
           </div>
         </Link>
+      )}
+
+      {/* Role-specific quick actions */}
+      {quickActions.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickActions.map((action, i) => {
+            const colors = COLOR_MAP[action.color]
+            return (
+              <Link key={i} to={action.to}
+                className={`p-4 rounded-2xl border ${colors.border} ${colors.bg} transition-all group`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <action.icon className={`w-5 h-5 ${colors.text}`} />
+                  <span className={`text-sm font-semibold ${colors.text}`}>{action.label}</span>
+                </div>
+                <p className="text-xs text-dark-400">{action.desc}</p>
+              </Link>
+            )
+          })}
+        </div>
       )}
 
       {/* Departments grid */}

@@ -28,6 +28,7 @@ export async function getStudentAttendance(req, res) {
       where: { studentId },
       include: { subject: { select: { name: true } } },
       orderBy: { date: 'desc' },
+      take: 100,
     })
     res.json({ success: true, data: records })
   } catch (error) {
@@ -49,6 +50,7 @@ export async function getClassAttendance(req, res) {
           student: { sectionId },
         },
         orderBy: { date: 'desc' },
+        take: 100,
       }),
     ])
 
@@ -106,6 +108,7 @@ export async function getMyAssignments(req, res) {
       where: { departmentId: { in: deptIds }, role: 'student' },
       select: { id: true, name: true, email: true, departmentId: true },
       orderBy: { name: 'asc' },
+      take: 200,
     }) : []
 
     res.json({
@@ -150,6 +153,7 @@ export async function getMarkableStudents(req, res) {
         where,
         select: { id: true, name: true, email: true },
         orderBy: { name: 'asc' },
+        take: 200,
       }),
       // Check if attendance already marked for this date+subject
       prisma.attendance.findMany({
@@ -158,6 +162,7 @@ export async function getMarkableStudents(req, res) {
           date: new Date(date + 'T00:00:00.000Z'),
         },
         select: { studentId: true, status: true },
+        take: 200,
       }),
     ])
 

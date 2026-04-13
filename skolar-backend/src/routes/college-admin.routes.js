@@ -5,6 +5,7 @@ import {
   getOverview, getDepartments, getDepartmentDetail,
   getTeacherProfile, getStudentProfile,
   getStaff, getStudents, getAttendance, getAnalytics, getPending,
+  getAssessments,
   createDepartment, deleteDepartment,
   assignDean, assignHOD, approveUser, rejectUser,
   requireManageDepts, requireAssignDean, requireApproveUsers,
@@ -25,6 +26,7 @@ router.get('/staff', getStaff)
 router.get('/students', getStudents)
 router.get('/attendance', getAttendance)
 router.get('/analytics', getAnalytics)
+router.get('/assessments', getAssessments)
 router.get('/pending', getPending)
 
 // ── WRITE endpoints (permission-gated) ──

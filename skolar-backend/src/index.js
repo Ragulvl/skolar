@@ -7,14 +7,12 @@ import authRoutes from './routes/auth.routes.js'
 import superadminRoutes from './routes/superadmin.routes.js'
 import adminRoutes from './routes/admin.routes.js'
 import schoolRoutes from './routes/school.routes.js'
-import collegeRoutes from './routes/college.routes.js'
-import chairmanRoutes from './routes/chairman.routes.js'
+
 import deanRoutes from './routes/dean.routes.js'
 import hodRoutes from './routes/hod.routes.js'
 import viceprincipalRoutes from './routes/viceprincipal.routes.js'
 import attendanceRoutes from './routes/attendance.routes.js'
 import assessmentRoutes from './routes/assessment.routes.js'
-import certificateRoutes from './routes/certificate.routes.js'
 import collegeAdminRoutes from './routes/college-admin.routes.js'
 import teacherRoutes from './routes/teacher.routes.js'
 import studentRoutes from './routes/student.routes.js'
@@ -41,14 +39,12 @@ app.use('/api/auth', authRoutes)
 app.use('/api/superadmin', superadminRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/school', schoolRoutes)
-app.use('/api/college', collegeRoutes)
-app.use('/api/chairman', chairmanRoutes)
+
 app.use('/api/dean', deanRoutes)
 app.use('/api/hod', hodRoutes)
 app.use('/api/viceprincipal', viceprincipalRoutes)
 app.use('/api/attendance', attendanceRoutes)
 app.use('/api/assessments', assessmentRoutes)
-app.use('/api/certificates', certificateRoutes)
 app.use('/api/college-admin', collegeAdminRoutes)
 app.use('/api/teacher', teacherRoutes)
 app.use('/api/student', studentRoutes)

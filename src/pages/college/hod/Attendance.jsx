@@ -179,7 +179,7 @@ function MarkAttendanceTab() {
         <div className="flex-1 min-w-[220px]">
           <label className="block text-xs text-dark-400 font-medium mb-1.5">Subject</label>
           <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setStatuses({}); setSubmitted(false) }}
-            className="w-full px-4 py-2.5 rounded-xl bg-dark-700/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none">
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-700/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none select-styled">
             <option value="">Select a subject...</option>
             {assignments.map(a => <option key={a.subjectId} value={a.subjectId}>{a.subjectName}</option>)}
           </select>

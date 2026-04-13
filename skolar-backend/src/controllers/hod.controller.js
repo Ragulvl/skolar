@@ -69,10 +69,21 @@ export async function getHODOverview(req, res) {
 export async function getHODTeachers(req, res) {
   try {
     const deptId = await getHODDeptId(req)
-    if (!deptId) return res.json({ success: true, data: [] })
+    if (!deptId) return res.json({ success: true, data: [], pagination: { total: 0, hasMore: false, nextCursor: null } })
 
-    const teachers = await prisma.user.findMany({
-      where: { departmentId: deptId, role: 'teacher' },
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const where = { departmentId: deptId, role: 'teacher' }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
+      where,
       select: {
         id: true, name: true, email: true, avatarUrl: true,
         teacherAssignments: {
@@ -84,9 +95,22 @@ export async function getHODTeachers(req, res) {
         },
       },
       orderBy: { name: 'asc' },
-    })
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
 
-    res.json({ success: true, data: teachers })
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
+    })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch teachers' })
   }
@@ -99,9 +123,12 @@ export async function getHODTeachers(req, res) {
 export async function getHODSubjects(req, res) {
   try {
     const deptId = await getHODDeptId(req)
-    if (!deptId) return res.json({ success: true, data: [] })
+    if (!deptId) return res.json({ success: true, data: [], pagination: { total: 0, hasMore: false, nextCursor: null } })
 
-    const subjects = await prisma.subject.findMany({
+    const { cursor, limit: rawLimit } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const query = {
       where: { departmentId: deptId },
       include: {
         teacherAssignments: {
@@ -111,8 +138,20 @@ export async function getHODSubjects(req, res) {
         _count: { select: { assessments: true, attendances: true } },
       },
       orderBy: { name: 'asc' },
-    })
-    res.json({ success: true, data: subjects })
+      take: limit + 1,
+    }
+
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.subject.findMany(query),
+      prisma.subject.count({ where: { departmentId: deptId } }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({ success: true, data: items, pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null } })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch subjects' })
   }
@@ -125,14 +164,39 @@ export async function getHODSubjects(req, res) {
 export async function getHODStudents(req, res) {
   try {
     const deptId = await getHODDeptId(req)
-    if (!deptId) return res.json({ success: true, data: [] })
+    if (!deptId) return res.json({ success: true, data: [], pagination: { total: 0, hasMore: false, nextCursor: null } })
 
-    const students = await prisma.user.findMany({
-      where: { departmentId: deptId, role: 'student' },
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const where = { departmentId: deptId, role: 'student' }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
+      where,
       select: { id: true, name: true, email: true, avatarUrl: true },
       orderBy: { name: 'asc' },
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
     })
-    res.json({ success: true, data: students })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch students' })
   }
@@ -169,13 +233,14 @@ export async function getHODAttendance(req, res) {
         },
         _count: true,
       }),
-      // 7-day trend (raw records, we'll aggregate in JS)
-      prisma.attendance.findMany({
+      // 7-day trend (aggregated at DB level)
+      prisma.attendance.groupBy({
+        by: ['date', 'status'],
         where: {
           student: { departmentId: deptId },
           date: { gte: trendStart, lt: nextDay },
         },
-        select: { date: true, status: true },
+        _count: true,
       }),
       // Per-subject breakdown for selected date
       prisma.attendance.groupBy({
@@ -204,8 +269,8 @@ export async function getHODAttendance(req, res) {
     trendData.forEach(r => {
       const key = r.date.toISOString().split('T')[0]
       if (trendMap[key]) {
-        trendMap[key][r.status] = (trendMap[key][r.status] || 0) + 1
-        trendMap[key].total++
+        trendMap[key][r.status] = (trendMap[key][r.status] || 0) + r._count
+        trendMap[key].total += r._count
       }
     })
 
@@ -259,9 +324,12 @@ export async function getHODAttendance(req, res) {
 export async function getHODAssessments(req, res) {
   try {
     const deptId = await getHODDeptId(req)
-    if (!deptId) return res.json({ success: true, data: [] })
+    if (!deptId) return res.json({ success: true, data: [], pagination: { total: 0, hasMore: false, nextCursor: null } })
 
-    const assessments = await prisma.assessment.findMany({
+    const { cursor, limit: rawLimit } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
+
+    const query = {
       where: { subject: { departmentId: deptId } },
       include: {
         subject: { select: { name: true } },
@@ -269,8 +337,20 @@ export async function getHODAssessments(req, res) {
         _count: { select: { results: true } },
       },
       orderBy: { createdAt: 'desc' },
-    })
-    res.json({ success: true, data: assessments })
+      take: limit + 1,
+    }
+
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.assessment.findMany(query),
+      prisma.assessment.count({ where: { subject: { departmentId: deptId } } }),
+    ])
+
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
+
+    res.json({ success: true, data: items, pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null } })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch assessments' })
   }
@@ -395,6 +475,7 @@ export async function getAvailableTeachers(req, res) {
       prisma.user.findMany({
         where: { departmentId: deptId, role: 'teacher' },
         select: { id: true, name: true, email: true },
+        take: 100,
       }),
       prisma.teacherDeptAssignment.findMany({
         where: { departmentId: deptId },

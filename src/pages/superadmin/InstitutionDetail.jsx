@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Building2, School, GraduationCap, MapPin, Users, UserCog,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import Badge from '../../components/ui/Badge'
 import ToggleSwitch from '../../components/ui/ToggleSwitch'
+import useAPI, { invalidateCache } from '../../hooks/useAPI'
 import api from '../../api/client'
 
 const ROLE_COLORS = {
@@ -25,26 +26,17 @@ const ROLE_COLORS = {
 export default function SuperAdminInstitutionDetail() {
   const { institutionId } = useParams()
   const navigate = useNavigate()
-  const [inst, setInst] = useState(null)
-  const [loading, setLoading] = useState(true)
+
+  // ─── Cached data fetching ─────────────────────────────────────────────
+  const { data: inst, loading, refetch } = useAPI(
+    institutionId ? `/superadmin/institutions/${institutionId}/detail` : null,
+    { staleTime: 120_000, fallback: null }
+  )
+
   const [activeTab, setActiveTab] = useState('users')
   const [copied, setCopied] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', city: '' })
-
-  const fetchDetail = async () => {
-    try {
-      const res = await api.get(`/superadmin/institutions/${institutionId}/detail`)
-      setInst(res.data.data)
-      setEditForm({ name: res.data.data.name, city: res.data.data.city || '' })
-    } catch {
-      setInst(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchDetail() }, [institutionId])
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(inst.code)
@@ -55,15 +47,17 @@ export default function SuperAdminInstitutionDetail() {
   const handleToggleActive = async () => {
     try {
       await api.patch(`/superadmin/institutions/${institutionId}`, { isActive: !inst.isActive })
-      setInst(prev => ({ ...prev, isActive: !prev.isActive }))
+      invalidateCache('/superadmin/institutions')
+      refetch()
     } catch {}
   }
 
   const handleSaveEdit = async () => {
     try {
       await api.patch(`/superadmin/institutions/${institutionId}`, editForm)
-      setInst(prev => ({ ...prev, ...editForm }))
+      invalidateCache('/superadmin/institutions')
       setEditing(false)
+      refetch()
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to update')
     }
@@ -176,7 +170,7 @@ export default function SuperAdminInstitutionDetail() {
                       {copied ? <CheckCircle2 className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3 text-dark-400" />}
                       <span className={isSchool ? 'text-brand-400' : 'text-violet-400'}>{inst.code}</span>
                     </button>
-                    <button onClick={() => setEditing(true)}
+                    <button onClick={() => { setEditForm({ name: inst.name, city: inst.city || '' }); setEditing(true) }}
                       className="flex items-center gap-1.5 text-xs text-dark-400 hover:text-dark-200 transition-colors">
                       <Settings2 className="w-3.5 h-3.5" /> Edit
                     </button>

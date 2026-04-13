@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardCheck, FileText, Award } from 'lucide-react'
+import { BookOpen, ClipboardCheck, FileText } from 'lucide-react'
 import StatCard from '../../../components/ui/StatCard'
 import { useAuth } from '../../../context/AuthContext'
 import useAPI from '../../../hooks/useAPI'
@@ -22,7 +22,7 @@ export default function CollegeStudentOverview() {
         <StatCard icon={ClipboardCheck} label="Attendance Rate" value={loading ? '—' : `${att.percentage || 0}%`} />
         <StatCard icon={FileText} label="Tests Taken" value={loading ? '—' : assess.totalTaken?.toString() || '0'} />
         <StatCard icon={FileText} label="Avg Score" value={loading ? '—' : assess.avgScore?.toString() || '0'} />
-        <StatCard icon={Award} label="Certificates" value={loading ? '—' : (data?.certificates || 0).toString()} />
+        <StatCard icon={BookOpen} label="Subjects" value={loading ? '—' : (subjects?.length || 0).toString()} />
       </div>
 
       {/* My Subjects */}

@@ -1,10 +1,17 @@
+import { useState } from 'react'
 import { GraduationCap } from 'lucide-react'
-import DataTable from '../../../components/ui/DataTable'
-import useAPI from '../../../hooks/useAPI'
-import EmptyState from '../../../components/ui/EmptyState'
+import PaginatedDataPage from '../../../components/ui/PaginatedDataPage'
+import { usePaginatedAPI } from '../../../hooks/useAPI'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 
 export default function SchoolVPStudents() {
-  const { data: students, loading } = useAPI('/viceprincipal/students', { fallback: [] })
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  const { items, loading, loadingMore, hasMore, total, loadMore } = usePaginatedAPI(
+    '/viceprincipal/students',
+    { params: { search: debouncedSearch }, pageSize: 20, staleTime: 60_000 }
+  )
 
   const columns = [
     { header: 'Student', accessor: 'name', cell: (row) => (
@@ -22,25 +29,23 @@ export default function SchoolVPStudents() {
     { header: 'Section', accessor: 'section', cell: (row) => row.section?.name || '—' },
   ]
 
-  if (students.length === 0 && !loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-extrabold font-heading">Students</h1>
-          <p className="text-sm text-dark-200 mt-1.5">Students in your assigned grades.</p>
-        </div>
-        <EmptyState icon={GraduationCap} title="No students found" message="No students in your assigned grades yet." />
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold font-heading">Students</h1>
-        <p className="text-sm text-dark-200 mt-1.5">Students in your assigned grades.</p>
-      </div>
-      <DataTable columns={columns} data={students} searchPlaceholder="Search students..." />
-    </div>
+    <PaginatedDataPage
+      title="Students"
+      subtitle="Students in your assigned grades."
+      columns={columns}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      total={total}
+      onLoadMore={loadMore}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search students..."
+      emptyIcon={GraduationCap}
+      emptyTitle="No students found"
+      emptyMessage="No students in your assigned grades yet."
+    />
   )
 }

@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react'
+import { ClipboardCheck } from 'lucide-react'
 import AttendanceDonut from '../../../components/charts/AttendanceDonut'
+import useAPI from '../../../hooks/useAPI'
 
 export default function SchoolStudentAttendance() {
-  const [monthlyAttendance, setMonthlyAttendance] = useState([])
-
-  useEffect(() => {
-    // TODO: Fetch student attendance from API
-  }, [])
-
-  const totalPresent = monthlyAttendance.reduce((s, m) => s + m.present, 0)
-  const totalAbsent = monthlyAttendance.reduce((s, m) => s + m.absent, 0)
+  const { data, loading } = useAPI('/student/attendance', { fallback: {} })
+  const stats = data?.stats || {}
+  const records = data?.records || []
 
   return (
     <div className="space-y-6">
@@ -18,32 +14,61 @@ export default function SchoolStudentAttendance() {
         <p className="text-sm text-dark-200 mt-1.5">Track your attendance throughout the year.</p>
       </div>
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-bold text-success">{stats.present || 0}</p>
+          <p className="text-xs text-dark-400">Present</p>
+        </div>
+        <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-bold text-danger">{stats.absent || 0}</p>
+          <p className="text-xs text-dark-400">Absent</p>
+        </div>
+        <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-bold text-amber-400">{stats.late || 0}</p>
+          <p className="text-xs text-dark-400">Late</p>
+        </div>
+        <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-bold text-brand-300">{stats.percentage || 0}%</p>
+          <p className="text-xs text-dark-400">Rate</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-6 flex flex-col items-center">
           <h3 className="font-semibold font-heading mb-4">Overall Attendance</h3>
-          <AttendanceDonut present={totalPresent} absent={totalAbsent} size={200} />
+          <AttendanceDonut present={stats.present || 0} absent={stats.absent || 0} late={stats.late || 0} size={200} />
         </div>
 
         <div className="lg:col-span-2 bg-dark-700/60 border border-dark-500/25 rounded-2xl p-6">
-          <h3 className="font-semibold font-heading mb-4">Monthly Breakdown</h3>
-          {monthlyAttendance.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {monthlyAttendance.map(m => {
-                const total = m.present + m.absent
-                const pct = total > 0 ? Math.round((m.present / total) * 100) : 0
-                return (
-                  <div key={m.month} className="text-center p-3 rounded-lg bg-dark-800/50 border border-dark-500/20">
-                    <p className="text-xs text-dark-400 mb-1">{m.month}</p>
-                    <p className={`text-lg font-bold font-heading ${pct >= 90 ? 'text-success' : pct >= 75 ? 'text-warning' : 'text-danger'}`}>
-                      {pct}%
-                    </p>
-                    <p className="text-[10px] text-dark-500 mt-0.5">{m.present}/{total}</p>
+          <h3 className="font-semibold font-heading mb-4">Recent Days</h3>
+          {records.length > 0 ? (
+            <div className="space-y-3">
+              {records.map(day => (
+                <div key={day.date} className="p-3 rounded-xl bg-dark-800/30 border border-dark-500/10">
+                  <p className="text-sm font-medium text-dark-100 mb-2">
+                    {new Date(day.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {day.records.map((r, i) => (
+                      <span key={i} className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                        r.status === 'present' ? 'bg-success/10 text-success' :
+                        r.status === 'late' ? 'bg-amber-500/10 text-amber-300' :
+                        'bg-danger/10 text-danger'
+                      }`}>
+                        {r.subjectName}: {r.status}
+                      </span>
+                    ))}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-[200px] text-sm text-dark-400">No attendance data yet.</div>
+            <div className="flex items-center justify-center h-[200px]">
+              <div className="text-center">
+                <ClipboardCheck className="w-10 h-10 text-dark-500 mx-auto mb-3" />
+                <p className="text-sm text-dark-400">{loading ? 'Loading...' : 'No attendance records yet.'}</p>
+              </div>
+            </div>
           )}
         </div>
       </div>

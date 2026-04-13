@@ -86,14 +86,14 @@ function CreateForm({ subjects, onClose }) {
         <div>
           <label className="block text-xs text-dark-400 font-medium mb-1.5">Type</label>
           <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none">
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none select-styled">
             <option value="mcq">MCQ</option><option value="descriptive">Descriptive</option>
           </select>
         </div>
         <div>
           <label className="block text-xs text-dark-400 font-medium mb-1.5">Subject *</label>
           <select value={form.subjectId} onChange={e => setForm(p => ({ ...p, subjectId: e.target.value }))}
-            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none">
+            className="w-full px-4 py-2.5 rounded-xl bg-dark-800/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none select-styled">
             <option value="">Select subject...</option>
             {(subjects || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -128,7 +128,7 @@ function CreateForm({ subjects, onClose }) {
                 ))}
               </div>
               <select value={q.answer} onChange={e => updateQ(qi, 'answer', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-dark-700/40 border border-dark-500/15 text-dark-100 text-sm focus:outline-none focus:border-brand-500/40 appearance-none">
+                className="w-full px-3 py-2 rounded-lg bg-dark-700/40 border border-dark-500/15 text-dark-100 text-sm focus:outline-none focus:border-brand-500/40 appearance-none select-styled">
                 <option value="">Correct answer...</option>
                 {q.options.map((o, oi) => o.trim() && <option key={oi} value={o}>{String.fromCharCode(65 + oi)}. {o}</option>)}
               </select>

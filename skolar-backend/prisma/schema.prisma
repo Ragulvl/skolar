@@ -54,8 +54,6 @@ model User {
   attendancesAsTeacher      Attendance[]       @relation("TeacherAttendance")
   assessmentsCreated        Assessment[]
   assessmentResults         AssessmentResult[]
-  certificatesEarned        Certificate[]      @relation("StudentCertificates")
-  certificatesIssued        Certificate[]      @relation("IssuedCertificates")
 
   @@index([institutionId])
   @@index([role])
@@ -118,7 +116,6 @@ model Subject {
   teacherAssignments TeacherAssignment[]
   attendances        Attendance[]
   assessments        Assessment[]
-  certificates       Certificate[]
 
   @@index([gradeId])
   @@index([institutionId])
@@ -227,21 +224,6 @@ model AssessmentResult {
   @@index([studentId])
 }
 
-model Certificate {
-  id        String   @id @default(uuid())
-  studentId String
-  subjectId String
-  title     String   @default("Certificate of Excellence")
-  issuedBy  String
-  issuedAt  DateTime @default(now())
-
-  student   User    @relation("StudentCertificates", fields: [studentId], references: [id])
-  issuer    User    @relation("IssuedCertificates", fields: [issuedBy], references: [id])
-  subject   Subject @relation(fields: [subjectId], references: [id])
-
-  @@index([studentId])
-  @@index([subjectId])
-}
 
 model VicePrincipalAssignment {
   id            String  @id @default(uuid())

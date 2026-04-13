@@ -120,6 +120,7 @@ export async function getPendingUsers(req, res) {
       where: { institutionId, role: 'pending' },
       select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     })
     res.json({ success: true, data: users })
   } catch (error) {
@@ -127,7 +128,6 @@ export async function getPendingUsers(req, res) {
   }
 }
 
-// GET /admin/all-pending — pending users across ALL assigned institutions
 export async function getAllPendingUsers(req, res) {
   try {
     const assignments = await prisma.adminInstitutionAssignment.findMany({
@@ -143,6 +143,7 @@ export async function getAllPendingUsers(req, res) {
         institution: { select: { id: true, name: true, type: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     })
     res.json({ success: true, data: users })
   } catch (error) {

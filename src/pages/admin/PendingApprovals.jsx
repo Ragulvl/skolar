@@ -86,7 +86,7 @@ export default function AdminPendingApprovals() {
                     <select
                       value={selectedRoles[user.id] || ''}
                       onChange={(e) => setSelectedRoles(p => ({ ...p, [user.id]: e.target.value }))}
-                      className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-dark-800 border border-dark-500/40
+                      className="appearance-none select-styled pl-3 pr-8 py-2 rounded-xl bg-dark-800 border border-dark-500/40
                         text-sm text-dark-50 focus:outline-none focus:border-brand-500 cursor-pointer"
                     >
                       <option value="">Select role</option>

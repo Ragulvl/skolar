@@ -1,5 +1,5 @@
 import {
-  BarChart3, Users, ClipboardList, Award, FileText, TrendingUp
+  BarChart3, Users, ClipboardList, FileText, TrendingUp
 } from 'lucide-react'
 import PieBreakdown from '../../components/charts/PieBreakdown'
 import PerformanceBar from '../../components/charts/PerformanceBar'
@@ -73,7 +73,7 @@ export default function SuperAdminAnalytics() {
           { label: 'Teachers', value: stats?.teachers, icon: Users, color: 'emerald' },
           { label: 'Students', value: stats?.students, icon: Users, color: 'violet' },
           { label: 'Assessments', value: stats?.assessments, icon: FileText, color: 'amber' },
-          { label: 'Certificates', value: stats?.certificates, icon: Award, color: 'pink' },
+          { label: 'Attendance', value: stats?.attendance, icon: ClipboardList, color: 'pink' },
         ].map(item => (
           <div key={item.label} className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-4 text-center">
             <p className={`text-2xl font-extrabold font-heading text-${item.color}-400`}>
@@ -124,16 +124,16 @@ export default function SuperAdminAnalytics() {
         <div className="bg-dark-700/60 border border-dark-500/25 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
-              <Award className="w-4 h-4 text-amber-400" />
+              <TrendingUp className="w-4 h-4 text-amber-400" />
             </div>
             <div>
-              <p className="text-xs text-dark-400">Certificates Issued</p>
+              <p className="text-xs text-dark-400">Growth Trends</p>
               <p className="text-xl font-bold font-heading text-dark-50">
-                {loading ? '—' : data?.totalCertificates || 0}
+                {loading ? '—' : data?.monthlySignups?.length || 0}
               </p>
             </div>
           </div>
-          <p className="text-xs text-dark-500">Across all institutions and subjects</p>
+          <p className="text-xs text-dark-500">Months of tracked signup data</p>
         </div>
       </div>
 

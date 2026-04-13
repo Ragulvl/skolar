@@ -134,11 +134,13 @@ export async function getTeacherDeptView(req, res) {
         where: { departmentId: ownDeptId, role: 'student' },
         select: { id: true, name: true, email: true },
         orderBy: { name: 'asc' },
+        take: 20,
       }),
       prisma.user.findMany({
         where: { departmentId: ownDeptId, role: 'teacher' },
         select: { id: true, name: true, email: true },
         orderBy: { name: 'asc' },
+        take: 20,
       }),
       prisma.subject.findMany({
         where: { departmentId: ownDeptId },
@@ -219,6 +221,7 @@ export async function getTeacherSubjectView(req, res) {
             where: { departmentId: subject.departmentId, role: 'student' },
             select: { id: true, name: true, email: true },
             orderBy: { name: 'asc' },
+            take: 100,
           })
         : Promise.resolve([]),
     ])
@@ -260,6 +263,8 @@ export async function getTeacherStudents(req, res) {
   try {
     const teacherId = req.user.id
     const ownDeptId = req.user.departmentId
+    const { cursor, limit: rawLimit, search } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 20, 100)
 
     // Get all dept IDs this teacher teaches in
     const assignments = await prisma.teacherAssignment.findMany({
@@ -269,25 +274,46 @@ export async function getTeacherStudents(req, res) {
     const deptIds = [...new Set(assignments.map(a => a.subject.departmentId).filter(Boolean))]
 
     if (deptIds.length === 0) {
-      return res.json({ success: true, data: [] })
+      return res.json({ success: true, data: [], pagination: { total: 0, hasMore: false, nextCursor: null } })
     }
 
-    const students = await prisma.user.findMany({
-      where: { departmentId: { in: deptIds }, role: 'student' },
+    const where = { departmentId: { in: deptIds }, role: 'student' }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const query = {
+      where,
       select: {
         id: true, name: true, email: true,
         department: { select: { id: true, name: true } },
       },
       orderBy: { name: 'asc' },
-    })
+      take: limit + 1,
+    }
+    if (cursor) { query.cursor = { id: cursor }; query.skip = 1 }
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany(query),
+      prisma.user.count({ where }),
+    ])
+    const hasMore = items.length > limit
+    if (hasMore) items.pop()
 
     // Mark which students are in own dept
-    const result = students.map(s => ({
+    const result = items.map(s => ({
       ...s,
       isOwnDept: s.department?.id === ownDeptId,
     }))
 
-    res.json({ success: true, data: result })
+    res.json({
+      success: true,
+      data: result,
+      pagination: { total, hasMore, nextCursor: hasMore ? items[items.length - 1]?.id : null },
+    })
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch students' })
   }

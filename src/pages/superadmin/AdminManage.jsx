@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Building2, School, GraduationCap, Mail, Shield,
@@ -6,34 +6,28 @@ import {
 } from 'lucide-react'
 import Badge from '../../components/ui/Badge'
 import ToggleSwitch from '../../components/ui/ToggleSwitch'
+import { useMultiAPI, invalidateCache } from '../../hooks/useAPI'
 import api from '../../api/client'
 
 export default function AdminManage() {
   const { adminId } = useParams()
   const navigate = useNavigate()
-  const [admin, setAdmin] = useState(null)
-  const [allInstitutions, setAllInstitutions] = useState([])
-  const [loading, setLoading] = useState(true)
+
+  // ─── Cached parallel data fetching ─────────────────────────────────────
+  const { data: apiData, loading, refetch } = useMultiAPI([
+    { url: '/superadmin/admins', key: 'admins', staleTime: 60_000, fallback: [] },
+    { url: '/superadmin/institutions?limit=100', key: 'institutions', staleTime: 120_000, fallback: [],
+      transform: (res) => res.data.data || [] },
+  ])
+
+  const admins = apiData.admins || []
+  const allInstitutions = apiData.institutions || []
+  const admin = admins.find(a => a.id === adminId) || null
+
   const [filter, setFilter] = useState('all') // all | assigned | unassigned
   const [typeFilter, setTypeFilter] = useState('all') // all | school | college
   const [search, setSearch] = useState('')
   const [toggling, setToggling] = useState(null)
-
-  const fetchData = async () => {
-    try {
-      const [adminsRes, instRes] = await Promise.all([
-        api.get('/superadmin/admins'),
-        api.get('/superadmin/institutions?limit=100'),
-      ])
-      const admins = adminsRes.data.data || []
-      const found = admins.find(a => a.id === adminId)
-      setAdmin(found || null)
-      setAllInstitutions(instRes.data.data || [])
-    } catch {}
-    finally { setLoading(false) }
-  }
-
-  useEffect(() => { fetchData() }, [adminId])
 
   const assignedIds = useMemo(() => {
     const set = new Set()
@@ -51,7 +45,8 @@ export default function AdminManage() {
         institutionId,
         isActive: !isCurrentlyActive,
       })
-      await fetchData()
+      invalidateCache('/superadmin/admins')
+      refetch()
     } catch {}
     finally { setToggling(null) }
   }

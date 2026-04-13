@@ -88,7 +88,7 @@ export default function CollegeTeacherAttendance() {
           <div className="relative">
             <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-400" />
             <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setStatuses({}); setSubmitted(false); }}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-dark-700/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none">
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-dark-700/60 border border-dark-500/25 text-dark-100 text-sm focus:outline-none focus:border-brand-500/50 appearance-none select-styled">
               <option value="">Select a subject...</option>
               {assignments.map(a => (
                 <option key={a.subjectId} value={a.subjectId}>{a.subjectName} — {a.departmentName}</option>

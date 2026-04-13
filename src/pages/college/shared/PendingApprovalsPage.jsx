@@ -51,7 +51,7 @@ export default function PendingApprovalsPage() {
     },
     { header: 'Assign Role', cell: (row) => (
       <select value={roles[row.id] || ''} onChange={(e) => setRoles(p => ({ ...p, [row.id]: e.target.value }))}
-        className="px-3 py-1.5 rounded-lg bg-dark-800 border border-dark-500/40 text-sm text-dark-100 focus:outline-none focus:border-brand-500">
+        className="px-3 py-1.5 rounded-lg bg-dark-800 border border-dark-500/40 text-sm text-dark-100 focus:outline-none focus:border-brand-500 appearance-none select-styled">
         <option value="">Select role...</option>
         {ROLE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>

@@ -1,11 +1,17 @@
+import { useState } from 'react'
 import { Users, BookOpen, Building2 } from 'lucide-react'
-import DataTable from '../../../components/ui/DataTable'
-import Badge from '../../../components/ui/Badge'
-import useAPI from '../../../hooks/useAPI'
+import PaginatedDataPage from '../../../components/ui/PaginatedDataPage'
+import { usePaginatedAPI } from '../../../hooks/useAPI'
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 
 export default function CollegeHODTeachers() {
-  const { data, loading } = useAPI('/hod/teachers', { fallback: [] })
-  const teachers = data || []
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
+
+  const { items, loading, loadingMore, hasMore, total, loadMore } = usePaginatedAPI(
+    '/hod/teachers',
+    { params: { search: debouncedSearch }, pageSize: 20, staleTime: 60_000 }
+  )
 
   const columns = [
     { header: 'Teacher', accessor: 'name', cell: (row) => (
@@ -54,20 +60,31 @@ export default function CollegeHODTeachers() {
     }},
   ]
 
+  const unassignedCount = items.filter(t => (t.teacherAssignments || []).length === 0).length
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold font-heading">Department Teachers</h1>
-        <p className="text-sm text-dark-200 mt-1.5">
-          Teachers and their subject assignments.
-          {teachers.filter(t => (t.teacherAssignments || []).length === 0).length > 0 && (
-            <span className="text-amber-400 ml-2">
-              ⚠ {teachers.filter(t => (t.teacherAssignments || []).length === 0).length} teacher(s) without subjects
-            </span>
-          )}
-        </p>
-      </div>
-      <DataTable columns={columns} data={teachers} searchPlaceholder="Search teachers..." />
-    </div>
+    <PaginatedDataPage
+      title="Department Teachers"
+      subtitle={<>
+        Teachers and their subject assignments.
+        {unassignedCount > 0 && (
+          <span className="text-amber-400 ml-2">
+            ⚠ {unassignedCount} teacher(s) without subjects
+          </span>
+        )}
+      </>}
+      columns={columns}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      hasMore={hasMore}
+      total={total}
+      onLoadMore={loadMore}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search teachers..."
+      emptyIcon={Users}
+      emptyTitle="No teachers found"
+    />
   )
 }
