@@ -14,13 +14,24 @@ export default function AdminManage() {
   const navigate = useNavigate()
 
   // ─── Cached parallel data fetching ─────────────────────────────────────
+  // Use a dedicated cache key for admin-manage to avoid conflict with the
+  // paginated cache set by the Admins list page (usePaginatedAPI stores
+  // {items, hasMore, total} under '/superadmin/admins', but useMultiAPI
+  // expects a plain array).
   const { data: apiData, loading, refetch } = useMultiAPI([
-    { url: '/superadmin/admins', key: 'admins', staleTime: 60_000, fallback: [] },
+    { url: '/superadmin/admins?limit=100', key: 'admins', staleTime: 60_000, fallback: [],
+      transform: (res) => {
+        const d = res.data?.data
+        // Handle both array (direct API) and paginated-cache shape
+        if (Array.isArray(d)) return d
+        if (d?.items && Array.isArray(d.items)) return d.items
+        return []
+      }},
     { url: '/superadmin/institutions?limit=100', key: 'institutions', staleTime: 120_000, fallback: [],
       transform: (res) => res.data.data || [] },
   ])
 
-  const admins = apiData.admins || []
+  const admins = Array.isArray(apiData.admins) ? apiData.admins : []
   const allInstitutions = apiData.institutions || []
   const admin = admins.find(a => a.id === adminId) || null
 
