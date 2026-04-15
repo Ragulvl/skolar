@@ -29,8 +29,10 @@ const sidebarConfig = {
     links: [
       { to: '', icon: LayoutDashboard, label: 'Overview', end: true },
       { to: '/institutions', icon: Building2, label: 'Institutions' },
+      { to: '/users', icon: Users, label: 'Users' },
       { to: '/pending', icon: UserCheck, label: 'Approvals' },
-      { to: '/reports', icon: BarChart3, label: 'Reports' },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/reports', icon: FileText, label: 'Reports' },
       { to: '/settings', icon: Settings, label: 'Settings' },
     ]
   },

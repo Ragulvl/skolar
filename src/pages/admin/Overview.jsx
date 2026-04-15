@@ -49,12 +49,14 @@ export default function AdminOverview() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           { label: 'Institutions', icon: Building2, path: '/dashboard/admin/institutions', color: 'brand' },
-          { label: 'Pending Approvals', icon: UserCheck, path: '/dashboard/admin/pending', color: 'orange' },
-          { label: 'Reports', icon: BarChart3, path: '/dashboard/admin/reports', color: 'emerald' },
-          { label: 'Settings', icon: Settings, path: '/dashboard/admin/settings', color: 'violet' },
+          { label: 'All Users', icon: Users, path: '/dashboard/admin/users', color: 'blue' },
+          { label: 'Approvals', icon: UserCheck, path: '/dashboard/admin/pending', color: 'orange' },
+          { label: 'Analytics', icon: BarChart3, path: '/dashboard/admin/analytics', color: 'violet' },
+          { label: 'Reports', icon: FileText, path: '/dashboard/admin/reports', color: 'emerald' },
+          { label: 'Settings', icon: Settings, path: '/dashboard/admin/settings', color: 'amber' },
         ].map(action => (
           <button key={action.label} onClick={() => navigate(action.path)}
             className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:scale-[1.02]
@@ -71,7 +73,7 @@ export default function AdminOverview() {
         {institutions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {institutions.map(inst => (
-              <div key={inst.id} onClick={() => navigate(`/dashboard/admin/institutions/${inst.id}`)}
+              <div key={inst.id} onClick={() => navigate(`/dashboard/admin/institutions/${inst.id}/detail`)}
                 className="bg-dark-700/60 border border-dark-500/25 rounded-2xl overflow-hidden card-hover group cursor-pointer">
                 <div className={`px-5 pt-5 pb-4 border-b border-dark-500/25
                   ${inst.type === 'school' ? 'bg-gradient-to-r from-brand-500/5 to-transparent' : 'bg-gradient-to-r from-violet-500/5 to-transparent'}`}>

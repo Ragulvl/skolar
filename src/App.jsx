@@ -31,9 +31,13 @@ const SuperAdminSettings = lazy(() => import('./pages/superadmin/Settings'))
 // Admin
 const AdminOverview = lazy(() => import('./pages/admin/Overview'))
 const AdminInstitutions = lazy(() => import('./pages/admin/Institutions'))
+const AdminInstitutionDetail = lazy(() => import('./pages/admin/InstitutionDetail'))
 const AdminPending = lazy(() => import('./pages/admin/PendingApprovals'))
 const AdminReports = lazy(() => import('./pages/admin/Reports'))
 const AdminSettings = lazy(() => import('./pages/admin/Settings'))
+const AdminUsers = lazy(() => import('./pages/admin/Users'))
+const AdminUserDetail = lazy(() => import('./pages/admin/UserDetail'))
+const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'))
 
 // School Principal
 const SchoolPrincipalOverview = lazy(() => import('./pages/school/principal/Overview'))
@@ -213,8 +217,11 @@ export default function App() {
       }>
         <Route index element={<AdminOverview />} />
         <Route path="institutions" element={<AdminInstitutions />} />
-        <Route path="institutions/:id" element={<AdminInstitutions />} />
+        <Route path="institutions/:id/detail" element={<AdminInstitutionDetail />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="users/:userId" element={<AdminUserDetail />} />
         <Route path="pending" element={<AdminPending />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
