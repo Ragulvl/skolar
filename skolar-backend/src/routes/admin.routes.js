@@ -6,7 +6,7 @@ import {
   getPendingUsers, getAllPendingUsers, approveUser, rejectUser,
   getAdminReports,
   getAdminUsers, getAdminUserById, getAdminAnalytics, getAdminInstitutionDetail,
-} from '../controllers/admin.controller.js'
+} from '../controllers/admin/index.js'
 
 const router = Router()
 router.use(authMiddleware, allowRoles('admin'))

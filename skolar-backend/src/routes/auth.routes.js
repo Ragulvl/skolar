@@ -4,7 +4,7 @@ import {
   googleCallback, getMe, signup, logout,
   validateInstitutionCode, searchInstitutions,
   register, loginWithPassword, setPassword,
-} from '../controllers/auth.controller.js'
+} from '../controllers/auth/index.js'
 
 const router = Router()
 

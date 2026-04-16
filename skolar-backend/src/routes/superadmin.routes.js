@@ -10,7 +10,7 @@ import {
   getPendingUsers, bulkApproveUsers,
   getEnhancedAnalytics, getPlatformActivity,
   getPlatformSettings, updatePlatformSettings,
-} from '../controllers/superadmin.controller.js'
+} from '../controllers/superadmin/index.js'
 
 const router = Router()
 router.use(authMiddleware, allowRoles('superadmin'))

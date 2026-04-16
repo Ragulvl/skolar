@@ -9,7 +9,7 @@ import {
   createDepartment, deleteDepartment,
   assignDean, assignHOD, approveUser, rejectUser,
   requireManageDepts, requireAssignDean, requireApproveUsers,
-} from '../controllers/college-admin.controller.js'
+} from '../controllers/college-admin/index.js'
 
 const router = Router()
 
