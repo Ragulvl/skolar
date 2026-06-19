@@ -15,9 +15,9 @@
 
 ---
 
-## 🔴 CRITICAL — Must Fix (16 endpoints)
+## 🟢 CRITICAL — All 16 Fixed (as of June 2026)
 
-These endpoints load entire user/student/teacher tables with no `take` limit. A single institution with 5,000 students would dump all 5,000 rows (plus joins) on every page load.
+**Status:** All endpoints below are now cursor-paginated with `take: limit+1`, `nextCursor`, `hasMore`, and `total`. Hard caps (`take: 20–100`) applied to non-scrollable detail views.
 
 | # | Role | Endpoint | Controller Function | What It Loads | Scope |
 |---|------|----------|-------------------|--------------|-------|
